@@ -1,7 +1,7 @@
 
 # carf-account
 
-This is a placeholder README.md for a new repository
+This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration journey
 
 ### License
 

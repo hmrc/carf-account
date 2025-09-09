@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration
+package uk.gov.hmrc.carfregistration.controllers
 
-import play.api.{Configuration, Environment}
-import play.api.inject.{Binding, Module => AppModule}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar.mock
+import play.api.mvc.ControllerComponents
 
-import java.time.Clock
+class CarfControllerSpec extends AnyWordSpec with Matchers
+  {
 
-class Module extends AppModule:
-
-  override def bindings(
-    environment  : Environment,
-    configuration: Configuration
-  ): Seq[Binding[_]] =
-    bind[Clock].toInstance(Clock.systemDefaultZone) :: // inject if current time needs to be controlled in unit tests
-    Nil
+  val TestCC = mock[ControllerComponents]
+  val TestController = new CarfController(TestCC)
+    
+    "carf controller getDetails" should :
+      "return 5" in :
+         TestController.getDetails mustEqual 5
+  }
