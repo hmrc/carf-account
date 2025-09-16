@@ -16,17 +16,13 @@
 
 package uk.gov.hmrc.carfregistration.controllers
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.carfregistration.config.AppConfig
+import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 
-class CarfController  @Inject()(
-                                 cc: ControllerComponents
-                               ) extends BackendController(cc):
+class CarfController @Inject() (
+    cc: ControllerComponents
+) extends BackendController(cc):
 
   def getDetails: Int = 5
-      
-  
-  
