@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration
+package uk.gov.hmrc.carfregistration.models.requests
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.controllers.actions.{AuthAction, AuthActionImpl}
+import play.api.libs.json.{Json, OFormat}
 
-import java.time.Clock
+case class RegisterIndividualWithIdRequest(
+    requiresNameMatch: Boolean,
+    IDNumber: String,
+    IDType: String,
+    dateOfBirth: String,
+    firstName: String,
+    lastName: String
+)
 
-class Module extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
-    bind(classOf[AuthAction]).to(classOf[AuthActionImpl]).asEagerSingleton()
-    bind(classOf[AppConfig]).asEagerSingleton()
-  }
+object RegisterIndividualWithIdRequest {
+  implicit val format: OFormat[RegisterIndividualWithIdRequest] = Json.format[RegisterIndividualWithIdRequest]
 }

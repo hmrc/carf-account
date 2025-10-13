@@ -1,1 +1,3 @@
 # microservice specific routes
+
+POST         /individual/nino                uk.gov.hmrc.carfregistration.controllers.RegisterController.registerIndividualWithId()

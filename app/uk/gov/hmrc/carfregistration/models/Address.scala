@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration
+package uk.gov.hmrc.carfregistration.models
 
-import com.google.inject.AbstractModule
-import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.controllers.actions.{AuthAction, AuthActionImpl}
+import play.api.libs.json.{Json, OFormat}
 
-import java.time.Clock
+case class Address(
+    addressLine1: String,
+    addressLine2: Option[String],
+    addressLine3: Option[String],
+    addressLine4: Option[String],
+    postalCode: Option[String],
+    countryCode: String
+)
 
-class Module extends AbstractModule {
-
-  override def configure(): Unit = {
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
-    bind(classOf[AuthAction]).to(classOf[AuthActionImpl]).asEagerSingleton()
-    bind(classOf[AppConfig]).asEagerSingleton()
-  }
+object Address {
+  implicit val format: OFormat[Address] = Json.format[Address]
 }
