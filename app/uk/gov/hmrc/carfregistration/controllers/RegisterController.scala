@@ -47,7 +47,7 @@ class RegisterController @Inject() (
         valid = sub =>
           println("BBBBBBBB")
           println(sub)
-          Future.successful(Ok(Json.toJson(service.createRegisterIndividualResponse())))
+          Future.successful(service.returnResponse(sub.IDNumber))
       )
   }
 
