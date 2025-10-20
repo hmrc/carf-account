@@ -26,15 +26,13 @@ import javax.inject.Inject
 
 class RegistrationService @Inject() () {
 
-  def returnResponse(nino: String): Result = {
-    println("KKKKKKKKKK " + nino)
+  def returnResponse(nino: String): Result =
     nino.take(1) match {
       case "9" => InternalServerError("Unexpected error")
       case "8" => NotFound("Individual user could not be matched")
       case "7" => Ok(Json.toJson(createEmptyIndividualResponse()))
       case _   => Ok(Json.toJson(createFullIndividualResponse()))
     }
-  }
 
   def createFullIndividualResponse(): RegisterIndividualWithIdResponse =
     RegisterIndividualWithIdResponse(

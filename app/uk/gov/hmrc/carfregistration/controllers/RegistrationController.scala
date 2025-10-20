@@ -27,7 +27,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RegisterController @Inject() (
+class RegistrationController @Inject() (
     cc: ControllerComponents,
     authorise: AuthAction,
     service: RegistrationService
@@ -36,19 +36,12 @@ class RegisterController @Inject() (
     with Logging {
 
   def registerIndividualWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    request.body
-      .validate[RegisterIndividualWithIdRequest]
-      .fold(
-        invalid = failure =>
-          println("AAAAAAAA")
-          println(failure)
-          Future.successful(BadRequest(""))
-        ,
-        valid = sub =>
-          println("BBBBBBBB")
-          println(sub)
-          Future.successful(service.returnResponse(sub.IDNumber))
-      )
+    withJsonBody[RegisterIndividualWithIdRequest] { request =>
+      println(s"%%% LOOK HERE (Request) %%% \n-> $request")
+      val response = service.returnResponse(request.IDNumber)
+      println(s"%%% LOOK HERE (Response) %%% \n-> $request")
+      Future.successful(response)
+    }
   }
 
 }

@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration.controllers
+package controllers
 
-import play.api.mvc.ControllerComponents
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import base.SpecBase
 
-import javax.inject.Inject
-
-class CarfController @Inject() (
-    cc: ControllerComponents
-) extends BackendController(cc):
-
-  def getDetails: Int = 5
+class RegistrationControllerSpec extends SpecBase {}

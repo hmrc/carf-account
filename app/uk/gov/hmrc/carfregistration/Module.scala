@@ -18,7 +18,7 @@ package uk.gov.hmrc.carfregistration
 
 import com.google.inject.AbstractModule
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.controllers.actions.{AuthAction, AuthActionImpl}
+import uk.gov.hmrc.carfregistration.controllers.actions.{AuthAction, DefaultAuthAction}
 
 import java.time.Clock
 
@@ -26,7 +26,7 @@ class Module extends AbstractModule {
 
   override def configure(): Unit = {
     bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
-    bind(classOf[AuthAction]).to(classOf[AuthActionImpl]).asEagerSingleton()
+    bind(classOf[AuthAction]).to(classOf[DefaultAuthAction]).asEagerSingleton()
     bind(classOf[AppConfig]).asEagerSingleton()
   }
 }

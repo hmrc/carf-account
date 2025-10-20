@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration.controllers
+package uk.gov.hmrc.carfregistration.models.requests
 
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar.mock
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{Request, WrappedRequest}
+import uk.gov.hmrc.auth.core.AffinityGroup
+import uk.gov.hmrc.http.SessionId
 
-class CarfControllerSpec extends AnyWordSpec with Matchers {
-
-  val TestCC         = mock[ControllerComponents]
-  val TestController = new CarfController(TestCC)
-
-  "carf controller getDetails"     should:
-    "return 5" in:
-      TestController.getDetails mustEqual 5
-}
+case class AuthenticatedRequest[A](
+    private val request: Request[A],
+    internalId: String,
+    sessionId: SessionId,
+    affinityGroup: AffinityGroup
+) extends WrappedRequest[A](request)
