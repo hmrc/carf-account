@@ -37,9 +37,9 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegisterIndividualWithIdRequest] { request =>
-      println(s"%%% LOOK HERE (Request) %%% \n-> $request")
+      logger.info(s"%%% LOOK HERE (Request) %%% \n-> $request")
       val response = service.returnResponse(request.IDNumber)
-      println(s"%%% LOOK HERE (Response) %%% \n-> $request")
+      logger.info(s"%%% LOOK HERE (Response) %%% \n-> $request")
       Future.successful(response)
     }
   }
