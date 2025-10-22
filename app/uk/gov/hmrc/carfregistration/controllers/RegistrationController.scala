@@ -39,7 +39,7 @@ class RegistrationController @Inject() (
     withJsonBody[RegisterIndividualWithIdRequest] { request =>
       logger.info(s"%%% LOOK HERE (Request) %%% \n-> $request")
       val response = service.returnResponse(request.IDNumber)
-      logger.info(s"%%% LOOK HERE (Response) %%% \n-> $request")
+      logger.info(s"%%% LOOK HERE (Response) %%% \n-> $response")
       Future.successful(response)
     }
   }
