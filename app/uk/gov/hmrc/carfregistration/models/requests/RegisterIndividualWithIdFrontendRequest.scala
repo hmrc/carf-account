@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration.models.responses
+package uk.gov.hmrc.carfregistration.models.requests
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.carfregistration.models.Address
 
-case class RegisterIndividualWithIdResponse(
-    safeId: String,
+case class RegisterIndividualWithIdFrontendRequest(
+    requiresNameMatch: Boolean,
+    IDNumber: String,
+    IDType: String,
+    dateOfBirth: String,
     firstName: String,
-    lastName: String,
-    middleName: Option[String],
-    address: Address
+    lastName: String
 )
 
-object RegisterIndividualWithIdResponse {
-  implicit val format: OFormat[RegisterIndividualWithIdResponse] = Json.format[RegisterIndividualWithIdResponse]
+object RegisterIndividualWithIdFrontendRequest {
+  implicit val format: OFormat[RegisterIndividualWithIdFrontendRequest] = Json.format[RegisterIndividualWithIdFrontendRequest]
 }

@@ -17,10 +17,15 @@
 package uk.gov.hmrc.carfregistration.config
 
 import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject() (config: Configuration):
+class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig):
 
   val appName: String = config.get[String]("appName")
+
+  private val registerWithIdHost: String    = servicesConfig.baseUrl("register-with-id")
+  val registerWithIdBaseUrl: String =
+    s"$registerWithIdHost${config.get[String]("microservice.services.register-with-id.uri")}"
