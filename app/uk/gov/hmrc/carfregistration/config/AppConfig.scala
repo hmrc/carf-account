@@ -26,6 +26,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val appName: String = config.get[String]("appName")
 
-  private val registerWithIdHost: String    = servicesConfig.baseUrl("register-with-id")
-  val registerWithIdBaseUrl: String =
+  private val registerWithIdHost: String = servicesConfig.baseUrl("register-with-id")
+  val registerWithIdBaseUrl: String      =
     s"$registerWithIdHost${config.get[String]("microservice.services.register-with-id.uri")}"

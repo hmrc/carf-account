@@ -18,10 +18,11 @@ package uk.gov.hmrc.carfregistration.controllers
 
 import com.google.inject.Inject
 import play.api.Logging
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndividualWithIdFrontendRequest
+import uk.gov.hmrc.carfregistration.models.NotFoundError
+import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdFrontendRequest
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,11 +37,15 @@ class RegistrationController @Inject() (
     with Logging {
 
   def registerIndividualWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    withJsonBody[RegisterIndividualWithIdFrontendRequest] { request =>
+    withJsonBody[RegisterIndWithIdFrontendRequest] { request =>
       logger.info(s"%%% LOOK HERE (Request) %%% \n-> $request")
-      val response = service.returnResponse(request.IDNumber)
-      logger.info(s"%%% LOOK HERE (Response) %%% \n-> $response")
-      Future.successful(response)
+      service.registerIndividualWithId(request).flatMap {
+        case Right(response)     => Future.successful(Ok(Json.toJson(response)))
+        case Left(NotFoundError) =>
+          Future.successful(NotFound("Could not find or create a business partner record for this user"))
+        case Left(_)             =>
+          Future.successful(InternalServerError("Unexpected error"))
+      }
     }
   }
 

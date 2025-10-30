@@ -16,58 +16,34 @@
 
 package uk.gov.hmrc.carfregistration.services
 
-import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.mvc.Results.{InternalServerError, NotFound, Ok}
-import uk.gov.hmrc.carfregistration.models.Address
-import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndividualWithIDRequest, RegisterIndividualWithIdFrontendRequest}
-import uk.gov.hmrc.carfregistration.models.responses.RegisterIndividualWithIdFrontendResponse
+import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdAPIRequest, RegisterIndWithIdFrontendRequest, RequestCommon, RequestDetailIndividual}
+import uk.gov.hmrc.carfregistration.models.responses.RegisterIndWithIdFrontendResponse
+import uk.gov.hmrc.carfregistration.models.{ApiError, UuidGen}
+import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.Clock
 import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
 
-class RegistrationService @Inject() () {
-  
-  def createRequest(request: RegisterIndividualWithIdFrontendRequest): RegisterIndividualWithIDRequest = {
-    RegisterIndividualWithIDRequest()
-  }
+class RegistrationService @Inject() (connector: RegistrationConnector, clock: Clock, uuidGen: UuidGen)(implicit
+    ec: ExecutionContext
+) {
 
-  def returnResponse(nino: String): Result =
-    nino.take(1) match {
-      case "9" => InternalServerError("Unexpected error")
-      case "8" => NotFound("Individual user could not be matched")
-      case "7" => Ok(Json.toJson(createEmptyIndividualResponse()))
-      case _   => Ok(Json.toJson(createFullIndividualResponse()))
-    }
-
-  def createFullIndividualResponse(): RegisterIndividualWithIdFrontendResponse =
-    RegisterIndividualWithIdFrontendResponse(
-      safeId = "test-safe-id",
-      firstName = "Timmy",
-      lastName = "Timmmy",
-      middleName = Some("Timmy?"),
-      address = Address(
-        addressLine1 = "2 High Street",
-        addressLine2 = Some("Birmingham"),
-        addressLine3 = Some("Nowhereshire"),
-        addressLine4 = Some("Down the road"),
-        postalCode = Some("B23 2AZ"),
-        countryCode = "GB"
+  def registerIndividualWithId(
+      frontendRequest: RegisterIndWithIdFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterIndWithIdFrontendResponse]] =
+    connector
+      .individualWithNino(
+        RegisterIndWithIdAPIRequest(
+          requestCommon = RequestCommon("NINO", uuidGen, clock),
+          requestDetail = RequestDetailIndividual(frontendRequest)
+        )
       )
-    )
+      .value
+      .map {
+        case Right(response) => Right(RegisterIndWithIdFrontendResponse(response))
+        case Left(error)     => Left(error)
+      }
 
-  def createEmptyIndividualResponse(): RegisterIndividualWithIdFrontendResponse =
-    RegisterIndividualWithIdFrontendResponse(
-      safeId = "test-safe-id",
-      firstName = "Test",
-      lastName = "Userson",
-      middleName = None,
-      address = Address(
-        addressLine1 = "2 High Street",
-        addressLine2 = None,
-        addressLine3 = None,
-        addressLine4 = None,
-        postalCode = None,
-        countryCode = "GB"
-      )
-    )
 }

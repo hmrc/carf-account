@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration.models.responses
+package uk.gov.hmrc.carfregistration.models
 
-import play.api.libs.json.{Json, OFormat}
+sealed trait ApiError
 
-case class ResponseCommon(
-    status: String
-)
+case object NotFoundError extends ApiError
 
-object ResponseCommon {
-  implicit val format: OFormat[ResponseCommon] = Json.format[ResponseCommon]
-}
+case object InternalServerError extends ApiError

@@ -16,17 +16,12 @@
 
 package uk.gov.hmrc.carfregistration.models
 
-import play.api.libs.json.{Json, OFormat}
+import java.util.UUID
 
-case class Address(
-    addressLine1: String,
-    addressLine2: Option[String],
-    addressLine3: Option[String],
-    addressLine4: Option[String],
-    postalCode: Option[String],
-    countryCode: String
-)
+trait UuidGen {
+  def randomUUID(): UUID
+}
 
-object Address {
-  implicit val format: OFormat[Address] = Json.format[Address]
+object UUIDGenImpl extends UuidGen {
+  override def randomUUID(): UUID = UUID.randomUUID()
 }

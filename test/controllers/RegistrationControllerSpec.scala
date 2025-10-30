@@ -23,7 +23,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, Ok}
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
 import uk.gov.hmrc.carfregistration.models.Address
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndividualWithIdFrontendRequest
+import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdFrontendRequest
 import uk.gov.hmrc.carfregistration.models.responses.RegisterIndividualWithIdResponse
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 
@@ -52,7 +52,7 @@ class RegistrationControllerSpec extends SpecBase {
   )
 
   val testRequest: JsValue = Json.toJson(
-    RegisterIndividualWithIdFrontendRequest(
+    RegisterIndWithIdFrontendRequest(
       requiresNameMatch = true,
       IDNumber = "123",
       IDType = "testType",

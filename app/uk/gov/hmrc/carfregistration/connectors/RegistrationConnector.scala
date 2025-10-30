@@ -23,12 +23,12 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.models.ErrorError
-import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndividualWithIDRequest, RegisterIndividualWithIdFrontendRequest}
-import uk.gov.hmrc.carfregistration.models.responses.RegisterIndividualWithIDResponse
+import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdAPIRequest
+import uk.gov.hmrc.carfregistration.models.responses.RegisterIndWithIdAPIResponse
+import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, NotFoundError}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,14 +41,14 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
   private val backendBaseUrl = config.registerWithIdBaseUrl
 
   def individualWithNino(
-      request: RegisterIndividualWithIDRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, ErrorError, RegisterIndividualWithIDResponse] =
+      request: RegisterIndWithIdAPIRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
     registerIndividualWithId(request, url"$backendBaseUrl")
 
   private def registerIndividualWithId(
-      request: RegisterIndividualWithIDRequest,
+      request: RegisterIndWithIdAPIRequest,
       endpoint: URL
-  )(implicit hc: HeaderCarrier): EitherT[Future, ErrorError, RegisterIndividualWithIDResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
     EitherT {
       http
         .post(endpoint)
@@ -56,22 +56,22 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         .execute[HttpResponse]
         .map {
           case response if response.status == OK        =>
-            Try(response.json.as[RegisterIndividualWithIDResponse]) match {
+            Try(response.json.as[RegisterIndWithIdAPIResponse]) match {
               case Success(data)      => Right(data)
               case Failure(exception) =>
                 logger.warn(
                   s"Error parsing response as RegisterIndividualWithIdResponse with endpoint: ${endpoint.toURI}"
                 )
-                Left(ErrorError(500, "Could not parse response as a RegisterIndividualWithIDResponse"))
+                Left(InternalServerError)
             }
           case response if response.status == NOT_FOUND =>
             logger.warn(
               s"No match could be found for this user: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
             )
-            Left(ErrorError(404, "Could not match user to a business partner record"))
+            Left(NotFoundError)
           case response                                 =>
             logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
-            Left(ErrorError(500, "Unexpected errorerror"))
+            Left(InternalServerError)
         }
     }
 
