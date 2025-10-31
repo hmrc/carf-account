@@ -22,9 +22,8 @@ import org.mockito.Mockito.{reset, when}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, Ok}
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
-import uk.gov.hmrc.carfregistration.models.Address
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdFrontendRequest
-import uk.gov.hmrc.carfregistration.models.responses.RegisterIndividualWithIdResponse
+import uk.gov.hmrc.carfregistration.models.requests.{IndividualDetails, RegisterIndWithIdAPIRequest, RegisterIndWithIdFrontendRequest, RequestCommon, RequestDetailIndividual}
+import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, IndividualResponse, RegisterIndWithIdAPIResponse, ResponseCommon, ResponseDetail}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 
 import scala.concurrent.Future
@@ -34,32 +33,38 @@ class RegistrationControllerSpec extends SpecBase {
   val mockService: RegistrationService       = mock[RegistrationService]
   val testController: RegistrationController = new RegistrationController(cc, fakeAuthAction, mockService)
 
-  val testServiceResponseBody: JsValue = Json.toJson(
-    RegisterIndividualWithIdResponse(
-      safeId = "test-safe-id",
-      firstName = "testFName",
-      lastName = "testLName",
-      middleName = Some("testMName"),
-      address = Address(
-        addressLine1 = "TestLine1",
-        addressLine2 = Some("TestLine2"),
-        addressLine3 = Some("TestLine3"),
-        addressLine4 = Some("TestLine4"),
-        postalCode = Some("ABC 123"),
-        countryCode = "GB"
+  val testApiResponseBody: JsValue = Json.toJson(
+    RegisterIndWithIdAPIResponse(
+      responseCommon = ResponseCommon(status = "200"),
+      responseDetail = ResponseDetail(
+        SAFEID = "Test-SafeId",
+        address = testAddressResponse,
+        individual = IndividualResponse(firstName = "Katie", lastName = "Long", middleName = None)
       )
     )
   )
 
   val testRequest: JsValue = Json.toJson(
-    RegisterIndWithIdFrontendRequest(
-      requiresNameMatch = true,
-      IDNumber = "123",
-      IDType = "testType",
-      dateOfBirth = "123",
-      firstName = "Katie",
-      lastName = "Long"
+    RegisterIndWithIdAPIRequest(
+      requestCommon =
+        RequestCommon(acknowledgementReference = "test-Ref", receiptDate = "test-Date", regime = "test-Regime"),
+      requestDetail = RequestDetailIndividual(
+        requiresNameMatch = true,
+        IDNumber = "test-IDNumber",
+        IDType = "test-IDType",
+        individual = IndividualDetails(dateOfBirth = "test-DOB", firstName = "Professor", lastName = "Rowan"),
+        isAnAgent = false
+      )
     )
+  )
+
+  private def testAddressResponse = AddressResponse(
+    addressLine1 = "64",
+    addressLine2 = Some("Zoo"),
+    addressLine3 = Some("Lane"),
+    addressLine4 = Some("Sixty Four"),
+    postalCode = Some("G66 2AZ"),
+    countryCode = "GB"
   )
 
   override def beforeEach(): Unit = {
@@ -70,11 +75,11 @@ class RegistrationControllerSpec extends SpecBase {
   "RegistrationController" - {
     "registerIndividualWithId" - {
       "must return response from service" in {
-        when(mockService.returnResponse(any())).thenReturn(Ok(testServiceResponseBody))
+        when(mockService.registerIndividualWithId(any())).thenReturn(???)
 
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testRequest))
 
-        result.toString mustBe Future.successful(Ok(testServiceResponseBody)).toString
+        result.toString mustBe Future.successful(???).toString
       }
       "must return bad request when the request is not valid" in {
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))

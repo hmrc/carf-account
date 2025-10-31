@@ -25,7 +25,7 @@ import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdAPIRequest
 import uk.gov.hmrc.carfregistration.models.responses.RegisterIndWithIdAPIResponse
-import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, NotFoundError}
+import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -62,7 +62,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                 logger.warn(
                   s"Error parsing response as RegisterIndividualWithIdResponse with endpoint: ${endpoint.toURI}"
                 )
-                Left(InternalServerError)
+                Left(JsonValidationError)
             }
           case response if response.status == NOT_FOUND =>
             logger.warn(
