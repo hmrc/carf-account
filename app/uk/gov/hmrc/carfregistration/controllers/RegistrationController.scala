@@ -18,10 +18,12 @@ package uk.gov.hmrc.carfregistration.controllers
 
 import com.google.inject.Inject
 import play.api.Logging
+import play.api.http.HttpEntity
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
 import uk.gov.hmrc.carfregistration.models.requests.RegisterIndividualWithIdRequest
+import uk.gov.hmrc.carfregistration.models.requests.RegisterOrganisationWithIdRequest
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,11 +39,25 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegisterIndividualWithIdRequest] { request =>
-      logger.info(s"%%% LOOK HERE (Request) %%% \n-> $request")
+      logger.info(s"%%% LOOK HERE (Individual Request) %%% \n-> $request")
       val response = service.returnResponse(request.IDNumber)
-      logger.info(s"%%% LOOK HERE (Response) %%% \n-> $response")
+      logger.info(s"%%% LOOK HERE (Individual Response) %%% \n-> $response")
       Future.successful(response)
     }
   }
 
+  def registerOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
+    withJsonBody[RegisterOrganisationWithIdRequest] { organisationRequest =>
+      logger.info(s"LOOK HERE (Organisation Request) \n-> $organisationRequest")
+      val response = service.returnResponseOrganisation(organisationRequest)
+
+      val responseBody = response.body match {
+        case HttpEntity.Strict(data, _) => data.utf8String
+        case _                          => "[empty body]"
+      }
+
+      logger.info(s"LOOK HERE (Organisation Response) \n-> Status code: ${response.header.status}, Body: $responseBody")
+      Future.successful(response)
+    }
+  }
 }

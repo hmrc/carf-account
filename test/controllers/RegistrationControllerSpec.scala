@@ -23,8 +23,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, Ok}
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
 import uk.gov.hmrc.carfregistration.models.Address
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndividualWithIdRequest
-import uk.gov.hmrc.carfregistration.models.responses.RegisterIndividualWithIdResponse
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndividualWithIdRequest, RegisterOrganisationWithIdRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{RegisterIndividualWithIdResponse, RegisterOrganisationWithIdResponse}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 
 import scala.concurrent.Future
@@ -62,6 +62,33 @@ class RegistrationControllerSpec extends SpecBase {
     )
   )
 
+  // automatch
+  val testOrganisationRequest: JsValue = Json.toJson(
+    RegisterOrganisationWithIdRequest(
+      requiresNameMatch = false,
+      IDNumber = "1234567890",
+      IDType = "UTR",
+      organisationName = None,
+      organisationType = None
+    )
+  )
+
+  val testServiceOrganisationResponseBody: JsValue = Json.toJson(
+    RegisterOrganisationWithIdResponse(
+      safeId = "XW3249234924",
+      code = Some("0001"),
+      organisationName = "Monsters Inc",
+      address = Address(
+        addressLine1 = "TestLine1",
+        addressLine2 = Some("TestLine2"),
+        addressLine3 = Some("TestLine3"),
+        addressLine4 = Some("TestLine4"),
+        postalCode = Some("ABC 123"),
+        countryCode = "GB"
+      )
+    )
+  )
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockService)
@@ -78,6 +105,21 @@ class RegistrationControllerSpec extends SpecBase {
       }
       "must return bad request when the request is not valid" in {
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))
+
+        result.toString mustBe Future.successful(BadRequest("")).toString
+      }
+    }
+    "registerOrganisationWithId" - {
+      "must return response from service" in {
+        when(mockService.returnResponseOrganisation(any[RegisterOrganisationWithIdRequest]()))
+          .thenReturn(Ok(testServiceOrganisationResponseBody))
+
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(testOrganisationRequest))
+
+        result.toString mustBe Future.successful(Ok(testServiceOrganisationResponseBody)).toString
+      }
+      "must return bad request when the request is not valid" in {
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(Json.toJson("invalid johnny")))
 
         result.toString mustBe Future.successful(BadRequest("")).toString
       }
