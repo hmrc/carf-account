@@ -29,8 +29,10 @@ import play.api.libs.json.JsValue
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers}
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.{DefaultAwaitTimeout, FakeHeaders, FakeRequest}
+import uk.gov.hmrc.carfregistration.config.Constants.ukTimeZoneStringId
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.{Clock, Instant, ZoneId}
 import scala.concurrent.ExecutionContext
 
 trait SpecBase
@@ -60,4 +62,6 @@ trait SpecBase
 
   implicit val hc: HeaderCarrier    = HeaderCarrier()
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+  val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1718118467838L), ZoneId.of(ukTimeZoneStringId))
 }

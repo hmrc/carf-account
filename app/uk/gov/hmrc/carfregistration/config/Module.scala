@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration
+package uk.gov.hmrc.carfregistration.config
 
 import com.google.inject.AbstractModule
-import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.controllers.actions.{AuthAction, DefaultAuthAction}
 import uk.gov.hmrc.carfregistration.models.{UUIDGenImpl, UuidGen}
 
-import java.time.Clock
+import java.time.{Clock, ZoneId}
 
 class Module extends AbstractModule {
 
   override def configure(): Unit = {
-    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone)
+    bind(classOf[Clock]).toInstance(Clock.system(ZoneId.of(Constants.ukTimeZoneStringId)))
     bind(classOf[UuidGen]).toInstance(UUIDGenImpl)
     bind(classOf[AuthAction]).to(classOf[DefaultAuthAction]).asEagerSingleton()
     bind(classOf[AppConfig]).asEagerSingleton()

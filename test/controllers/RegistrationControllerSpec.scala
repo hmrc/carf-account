@@ -76,7 +76,7 @@ class RegistrationControllerSpec extends SpecBase {
 
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
 
-        status(result) mustBe OK
+        status(result)        mustBe OK
         contentAsJson(result) mustBe Json.toJson(testServiceResponseSuccess)
       }
       "must return not found response when the service cannot retrieve a business partner record" in {
@@ -84,7 +84,7 @@ class RegistrationControllerSpec extends SpecBase {
 
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
 
-        status(result) mustBe NOT_FOUND
+        status(result)        mustBe NOT_FOUND
         contentAsString(result) must include("Could not find or create a business partner record for this user")
       }
       "must return internal server error response when the service returns an unexpected error" in {
@@ -92,7 +92,7 @@ class RegistrationControllerSpec extends SpecBase {
 
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        status(result)        mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) must include("Unexpected error")
       }
       "must return bad request when the request is not valid" in {

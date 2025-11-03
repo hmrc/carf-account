@@ -29,37 +29,74 @@ import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HeaderCarrier
 
-class RegistrationConnectorISpec
-    extends ApplicationWithWiremock
-    with ScalaFutures
-    with IntegrationPatience {
+class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutures with IntegrationPatience {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val connector: RegistrationConnector = app.injector.instanceOf[RegistrationConnector]
 
   val testApiResponseBody = RegisterIndWithIdAPIResponse(
-      responseCommon = ResponseCommon(status = "200"),
-      responseDetail = ResponseDetail(
-        SAFEID = "Test-SafeId",
-        address = testAddressResponse,
-        individual = IndividualResponse(firstName = "Katie", lastName = "Long", middleName = None)
-      )
+    responseCommon = ResponseCommon(status = "200"),
+    responseDetail = ResponseDetail(
+      SAFEID = "Test-SafeId",
+      address = testAddressResponse,
+      individual = IndividualResponse(firstName = "Katie", lastName = "Long", middleName = Some("Bjorn"))
     )
+  )
 
+  val testApiResponseJson: String = """{
+                              |  "responseCommon": {
+                              |    "processingDate": "2025-11-03",
+                              |    "returnParameters": [
+                              |      {
+                              |        "paramName": "Test-ParamName",
+                              |        "paramValue": "Test-ParamValue"
+                              |      }
+                              |    ],
+                              |    "status": "200",
+                              |    "statusText": "Test-StatusText"
+                              |  },
+                              |  "responseDetail": {
+                              |    "ARN": "Test-ARN",
+                              |    "SAFEID": "Test-SafeId",
+                              |    "address": {
+                              |      "addressLine1": "64",
+                              |      "addressLine2": "Zoo",
+                              |      "addressLine3": "Lane",
+                              |      "addressLine4": "Sixty Four",
+                              |      "postalCode": "G66 2AZ",
+                              |      "countryCode": "GB"
+                              |    },
+                              |    "contactDetails": {
+                              |      "emailAddress": "test@example.com",
+                              |      "faxNumber": "Test-FaxNo",
+                              |      "mobileNumber": "Test-MobileNo",
+                              |      "phoneNumber": "TestPhoneNo"
+                              |    },
+                              |    "individual": {
+                              |      "dateOfBirth": "test-dob",
+                              |      "firstName": "Katie",
+                              |      "lastName": "Long",
+                              |      "middleName": "Bjorn"
+                              |    },
+                              |    "isAnASAgent": false,
+                              |    "isAnAgent": false,
+                              |    "isAnIndividual": true,
+                              |    "isEditable": false
+                              |  }
+                              |}""".stripMargin
 
   val testRequest = RegisterIndWithIdAPIRequest(
-      requestCommon =
-        RequestCommon(acknowledgementReference = "test-Ref", receiptDate = "test-Date", regime = "test-Regime"),
-      requestDetail = RequestDetailIndividual(
-        requiresNameMatch = true,
-        IDNumber = "test-IDNumber",
-        IDType = "test-IDType",
-        individual = IndividualDetails(dateOfBirth = "test-DOB", firstName = "Professor", lastName = "Rowan"),
-        isAnAgent = false
-      )
+    requestCommon =
+      RequestCommon(acknowledgementReference = "test-Ref", receiptDate = "test-Date", regime = "test-Regime"),
+    requestDetail = RequestDetailIndividual(
+      requiresNameMatch = true,
+      IDNumber = "test-IDNumber",
+      IDType = "test-IDType",
+      individual = IndividualDetails(dateOfBirth = "test-DOB", firstName = "Professor", lastName = "Rowan"),
+      isAnAgent = false
     )
-
+  )
 
   private def testAddressResponse = AddressResponse(
     addressLine1 = "64",
@@ -77,7 +114,7 @@ class RegistrationConnectorISpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-              .withBody(Json.toJson(testApiResponseBody).toString)
+              .withBody(testApiResponseJson)
           )
       )
 
