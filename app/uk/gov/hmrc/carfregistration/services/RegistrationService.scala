@@ -102,7 +102,7 @@ class RegistrationService @Inject() () {
         addressLine3 = None,
         addressLine4 = None,
         postalCode = None,
-        countryCode = "GB"
+        countryCode = "US"
       )
     )
 }
