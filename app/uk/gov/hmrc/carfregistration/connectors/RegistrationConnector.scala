@@ -23,8 +23,8 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdAPIRequest
-import uk.gov.hmrc.carfregistration.models.responses.RegisterIndWithIdAPIResponse
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdAPIRequest, RegisterOrganisationWithIdAPIRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{RegisterIndWithIdAPIResponse, RegisterOrganisationWithIdAPIResponse}
 import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -44,6 +44,40 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
       request: RegisterIndWithIdAPIRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
     registerIndividualWithId(request, url"$backendBaseUrl")
+
+  def organisationWithID(request: RegisterOrganisationWithIdAPIRequest)(implicit
+      hc: HeaderCarrier
+  ): EitherT[Future, ApiError, RegisterOrganisationWithIdAPIResponse] =
+    registerOrganisationWithID(request, url"$backendBaseUrl")
+
+  private def registerOrganisationWithID(request: RegisterOrganisationWithIdAPIRequest, endpoint: URL)(implicit
+      hc: HeaderCarrier
+  ): EitherT[Future, ApiError, RegisterOrganisationWithIdAPIResponse] =
+    EitherT {
+      http
+        .post(endpoint)
+        .withBody(Json.toJson(request))
+        .execute[HttpResponse]
+        .map {
+          case response if response.status == OK        =>
+            Try(response.json.as[RegisterOrganisationWithIdAPIResponse]) match {
+              case Success(data)      => Right(data)
+              case Failure(exception) =>
+                logger.warn(
+                  s"Error parsing response as RegisterOrganisationWithIDAPIResponse with endpoint: ${endpoint.toURI}"
+                )
+                Left(JsonValidationError)
+            }
+          case response if response.status == NOT_FOUND =>
+            logger.warn(
+              s"No match could be found for this organisation: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+            )
+            Left(NotFoundError)
+          case response                                 =>
+            logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+            Left(InternalServerError)
+        }
+    }
 
   private def registerIndividualWithId(
       request: RegisterIndWithIdAPIRequest,

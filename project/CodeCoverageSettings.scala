@@ -11,7 +11,16 @@ object CodeCoverageSettings {
     "prod.*",
     ".*Routes.*",
     "testOnly.*",
-    "testOnlyDoNotUseInAppConf.*"
+    "testOnlyDoNotUseInAppConf.*",
+    "com.kenshoo.play.metrics.*",
+    ".*definition.*",
+    ".*stubs.*",
+    ".*models.*",
+    ".*repositories.*",
+    ".*package.*",
+    ".*controllers.test.*",
+    ".*services.test.*",
+    ".*metrics.*"
   )
 
   val settings: Seq[Setting[_]] = Seq(

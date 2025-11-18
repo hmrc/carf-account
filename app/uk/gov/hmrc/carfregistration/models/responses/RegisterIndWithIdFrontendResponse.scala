@@ -33,9 +33,9 @@ object RegisterIndWithIdFrontendResponse {
   def apply(apiResponse: RegisterIndWithIdAPIResponse): RegisterIndWithIdFrontendResponse =
     RegisterIndWithIdFrontendResponse(
       safeId = apiResponse.responseDetail.SAFEID,
-      firstName = apiResponse.responseDetail.individual.firstName,
-      lastName = apiResponse.responseDetail.individual.lastName,
-      middleName = apiResponse.responseDetail.individual.middleName,
+      firstName = apiResponse.responseDetail.individual.map(_.firstName).getOrElse("firstName"),
+      lastName = apiResponse.responseDetail.individual.map(_.lastName).getOrElse("lastName"),
+      middleName = apiResponse.responseDetail.individual.flatMap(_.middleName),
       address = apiResponse.responseDetail.address
     )
 }

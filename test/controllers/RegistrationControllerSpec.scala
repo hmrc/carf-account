@@ -24,8 +24,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.BadRequest
 import play.api.test.Helpers.{contentAsJson, contentAsString, status}
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdFrontendRequest
-import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegisterIndWithIdFrontendResponse}
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdFrontendRequest, RegisterOrganisationWithIdFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegisterIndWithIdFrontendResponse, RegisterOrganisationWithIdFrontendResponse}
 import uk.gov.hmrc.carfregistration.models.{InternalServerError, NotFoundError}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 
@@ -64,6 +64,33 @@ class RegistrationControllerSpec extends SpecBase {
     countryCode = "GB"
   )
 
+  // automatch
+  val testOrganisationRequest: JsValue = Json.toJson(
+    RegisterOrganisationWithIdFrontendRequest(
+      requiresNameMatch = false,
+      IDNumber = "1234567890",
+      IDType = "UTR",
+      organisationName = None,
+      organisationType = None
+    )
+  )
+
+  val testServiceOrganisationResponseBody: JsValue = Json.toJson(
+    RegisterOrganisationWithIdFrontendResponse(
+      safeId = "XW3249234924",
+      code = Some("0001"),
+      organisationName = "Monsters Inc",
+      address = AddressResponse(
+        addressLine1 = "TestLine1",
+        addressLine2 = Some("TestLine2"),
+        addressLine3 = Some("TestLine3"),
+        addressLine4 = Some("TestLine4"),
+        postalCode = Some("ABC 123"),
+        countryCode = "GB"
+      )
+    )
+  )
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockService)
@@ -97,6 +124,49 @@ class RegistrationControllerSpec extends SpecBase {
       }
       "must return bad request when the request is not valid" in {
         val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))
+
+        result.toString mustBe Future.successful(BadRequest("")).toString
+      }
+    }
+
+    "registerOrganisationWithId" - {
+      "must return success response when the service can retrieve a business record" in {
+
+        val expectedOrgResponse = testServiceOrganisationResponseBody.as[RegisterOrganisationWithIdFrontendResponse]
+
+        when(mockService.registerOrganisationWithId(any())(any()))
+          .thenReturn(Future.successful(Right(expectedOrgResponse)))
+
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(testOrganisationRequest))
+
+        status(result) mustBe OK
+
+        contentAsJson(result) mustBe testServiceOrganisationResponseBody
+
+      }
+
+      "must return not found response when the service cannot retrieve a business record" in {
+        when(mockService.registerOrganisationWithId(any())(any()))
+          .thenReturn(Future.successful(Left(NotFoundError)))
+
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(testOrganisationRequest))
+
+        status(result)        mustBe NOT_FOUND
+        contentAsString(result) must include("Could not find or create a business record for this organisation")
+      }
+
+      "must return internal server error response when the service returns an unexpected error" in {
+        when(mockService.registerOrganisationWithId(any())(any()))
+          .thenReturn(Future.successful(Left(InternalServerError)))
+
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(testOrganisationRequest))
+
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Unexpected error")
+      }
+
+      "must return bad request when the request is not valid" in {
+        val result = testController.registerOrganisationWithId()(fakeRequestWithJsonBody(Json.toJson("invalid johnny")))
 
         result.toString mustBe Future.successful(BadRequest("")).toString
       }

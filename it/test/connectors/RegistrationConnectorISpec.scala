@@ -24,7 +24,7 @@ import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.libs.json.Json
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
-import uk.gov.hmrc.carfregistration.models.requests.{IndividualDetails, RegisterIndWithIdAPIRequest, RequestCommon, RequestDetailIndividual}
+import uk.gov.hmrc.carfregistration.models.requests.{IndividualDetails, OrganisationDetails, RegisterIndWithIdAPIRequest, RegisterOrganisationWithIdAPIRequest, RegisterOrganisationWithIdFrontendRequest, RequestCommon, RequestDetailIndividual, RequestDetailOrganisation}
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -40,7 +40,8 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     responseDetail = ResponseDetail(
       SAFEID = "Test-SafeId",
       address = testAddressResponse,
-      individual = IndividualResponse(firstName = "Katie", lastName = "Long", middleName = Some("Bjorn"))
+      individual = Some(IndividualResponse(firstName = "Katie", lastName = "Long", middleName = Some("Bjorn"))),
+      organisation = None
     )
   )
 
@@ -107,6 +108,61 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     countryCode = "GB"
   )
 
+  val testOrganisationFrontendRequest = RegisterOrganisationWithIdFrontendRequest(
+    requiresNameMatch = false,
+    IDType = "UTR",
+    IDNumber = "1234567890",
+    organisationName = Some("Test Limited"),
+    organisationType = Some("0001")
+  )
+
+  val testOrganisationApiRequest = RegisterOrganisationWithIdAPIRequest(
+    requestCommon = RequestCommon(
+      acknowledgementReference = "test-Ref",
+      receiptDate = "test-Date",
+      regime = "test-Regime"
+    ),
+    requestDetail = RequestDetailOrganisation(testOrganisationFrontendRequest)
+  )
+
+
+  val testOrganisationApiResponseJson: String =
+    """{
+    "responseCommon": {
+      "status": "OK",
+      "processingDate": "2025-11-03"
+    },
+    "responseDetail": {
+      "SAFEID": "XE0000123456789",
+      "organisation": {
+        "organisationName": "Test Limited",
+        "code": "0001"
+      },
+      "address": {
+        "addressLine1": "123 Test Street",
+        "addressLine2": "Islington",
+        "countryCode": "GB"
+      }
+    }
+  }"""
+
+  val testOrganisationApiResponseBody = RegisterOrganisationWithIdAPIResponse(
+    responseCommon = ResponseCommon(status = "OK"),
+    responseDetail = ResponseDetail(
+      SAFEID = "XE0000123456789",
+      organisation = Some(OrganisationResponse(organisationName = "Test Limited", code = "0001")),
+      individual = None,
+      address = AddressResponse(
+        addressLine1 = "123 Test Street",
+        addressLine2 = Some("Islington"),
+        addressLine3 = None,
+        addressLine4 = None,
+        countryCode = "GB",
+        postalCode = None
+      )
+    )
+  )
+
   "individualWithNino" should {
     "successfully retrieve the api response" in {
       stubFor(
@@ -164,6 +220,66 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       )
 
       val result = connector.individualWithNino(testRequest).value.futureValue
+
+      result mustBe Left(InternalServerError)
+    }
+  }
+
+  "organisationWithID" should {
+    "successfully retrieve the api response" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dct102b/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(testOrganisationApiResponseJson)
+          )
+      )
+
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
+
+      result mustBe Right(testOrganisationApiResponseBody)
+    }
+
+    "return a Json validation error if unexpected response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dct102b/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(Json.toJson("invalid org response").toString)
+          )
+      )
+
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
+
+      result mustBe Left(JsonValidationError)
+    }
+
+    "return a not found error if 404 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dct102b/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(NOT_FOUND)
+          )
+      )
+
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
+
+      result mustBe Left(NotFoundError)
+    }
+
+    "return an internal server error if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dct102b/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(INTERNAL_SERVER_ERROR)
+          )
+      )
+
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
 
       result mustBe Left(InternalServerError)
     }

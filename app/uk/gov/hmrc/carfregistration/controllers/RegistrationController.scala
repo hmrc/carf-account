@@ -22,7 +22,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
 import uk.gov.hmrc.carfregistration.models.NotFoundError
-import uk.gov.hmrc.carfregistration.models.requests.RegisterIndWithIdFrontendRequest
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdFrontendRequest, RegisterOrganisationWithIdFrontendRequest}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -38,11 +38,24 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegisterIndWithIdFrontendRequest] { request =>
-      logger.info(s"%%% LOOK HERE (Request) %%% \n-> $request")
+      logger.debug(s" registerIndividualWithId \n-> $request")
       service.registerIndividualWithId(request).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
           Future.successful(NotFound("Could not find or create a business partner record for this user"))
+        case Left(_)             =>
+          Future.successful(InternalServerError("Unexpected error"))
+      }
+    }
+  }
+
+  def registerOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
+    withJsonBody[RegisterOrganisationWithIdFrontendRequest] { organisationRequest =>
+      logger.debug(s" registerOrganisationWithId) \n-> $organisationRequest")
+      service.registerOrganisationWithId(organisationRequest).flatMap {
+        case Right(response)     => Future.successful(Ok(Json.toJson(response)))
+        case Left(NotFoundError) =>
+          Future.successful(NotFound("Could not find or create a business record for this organisation"))
         case Left(_)             =>
           Future.successful(InternalServerError("Unexpected error"))
       }

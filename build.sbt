@@ -1,10 +1,11 @@
 import uk.gov.hmrc.DefaultBuildSettings
 
+val appName = "carf-account"
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / scalacOptions += "-Wconf:msg=Flag.*repeatedly:s"
 
-lazy val microservice = Project("carf-account", file("."))
+lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(
