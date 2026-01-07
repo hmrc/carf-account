@@ -30,13 +30,29 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
     ec: ExecutionContext
 ) {
 
-  def registerIndividualWithId(
+  def registerIndividualWithNino(
       frontendRequest: RegisterIndWithIdFrontendRequest
   )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterIndWithIdFrontendResponse]] =
     connector
-      .individualWithNino(
+      .individualWithId(
         RegisterIndWithIdAPIRequest(
           requestCommon = RequestCommon("NINO", uuidGen, clock),
+          requestDetail = RequestDetailIndividual(frontendRequest)
+        )
+      )
+      .value
+      .map {
+        case Right(response) => Right(RegisterIndWithIdFrontendResponse(response))
+        case Left(error)     => Left(error)
+      }
+
+  def registerIndividualWithUtr(
+      frontendRequest: RegisterIndWithIdFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterIndWithIdFrontendResponse]] =
+    connector
+      .individualWithId(
+        RegisterIndWithIdAPIRequest(
+          requestCommon = RequestCommon("UTR", uuidGen, clock),
           requestDetail = RequestDetailIndividual(frontendRequest)
         )
       )

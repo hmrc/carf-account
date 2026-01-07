@@ -40,7 +40,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
 
   private val backendBaseUrl = config.registerWithIdBaseUrl
 
-  def individualWithNino(
+  def individualWithId(
       request: RegisterIndWithIdAPIRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
     registerIndividualWithId(request, url"$backendBaseUrl")

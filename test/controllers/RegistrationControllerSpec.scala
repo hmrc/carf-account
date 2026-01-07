@@ -24,7 +24,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.BadRequest
 import play.api.test.Helpers.{contentAsJson, contentAsString, status}
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
-import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdFrontendRequest, RegisterOrganisationWithIdFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdFrontendRequest, RegisterIndWithNinoFrontendRequest, RegisterIndWithUtrFrontendRequest, RegisterOrganisationWithIdFrontendRequest}
 import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegisterIndWithIdFrontendResponse, RegisterOrganisationWithIdFrontendResponse}
 import uk.gov.hmrc.carfregistration.models.{InternalServerError, NotFoundError}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
@@ -44,12 +44,22 @@ class RegistrationControllerSpec extends SpecBase {
     address = testAddressResponse
   )
 
-  val testFrontendRequestJson: JsValue = Json.toJson(
-    RegisterIndWithIdFrontendRequest(
+  val testFrontendRequestWithNinoJson: JsValue = Json.toJson(
+    RegisterIndWithNinoFrontendRequest(
       requiresNameMatch = true,
       IDNumber = "test-Nino",
       IDType = "NINO",
       dateOfBirth = "test-DOB",
+      firstName = "Alex",
+      lastName = "Hamilton"
+    )
+  )
+
+  val testFrontendRequestWithUtrJson: JsValue = Json.toJson(
+    RegisterIndWithUtrFrontendRequest(
+      requiresNameMatch = true,
+      IDNumber = "test-Utr",
+      IDType = "UTR",
       firstName = "Alex",
       lastName = "Hamilton"
     )
@@ -97,34 +107,55 @@ class RegistrationControllerSpec extends SpecBase {
   }
 
   "RegistrationController" - {
-    "registerIndividualWithId" - {
+    "registerIndividualWithNino" - {
       "must return success response when the service can retrieve a business partner record" in {
-        when(mockService.registerIndividualWithId(any())(any())).thenReturn(Future(Right(testServiceResponseSuccess)))
-
-        val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
-
+        when(mockService.registerIndividualWithNino(any())(any())).thenReturn(Future(Right(testServiceResponseSuccess)))
+        val result =
+          testController.registerIndividualWithNino()(fakeRequestWithJsonBody(testFrontendRequestWithNinoJson))
         status(result)        mustBe OK
         contentAsJson(result) mustBe Json.toJson(testServiceResponseSuccess)
       }
       "must return not found response when the service cannot retrieve a business partner record" in {
-        when(mockService.registerIndividualWithId(any())(any())).thenReturn(Future(Left(NotFoundError)))
-
-        val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
-
+        when(mockService.registerIndividualWithNino(any())(any())).thenReturn(Future(Left(NotFoundError)))
+        val result =
+          testController.registerIndividualWithNino()(fakeRequestWithJsonBody(testFrontendRequestWithNinoJson))
         status(result)        mustBe NOT_FOUND
         contentAsString(result) must include("Could not find or create a business partner record for this user")
       }
       "must return internal server error response when the service returns an unexpected error" in {
-        when(mockService.registerIndividualWithId(any())(any())).thenReturn(Future(Left(InternalServerError)))
-
-        val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(testFrontendRequestJson))
-
+        when(mockService.registerIndividualWithNino(any())(any())).thenReturn(Future(Left(InternalServerError)))
+        val result =
+          testController.registerIndividualWithNino()(fakeRequestWithJsonBody(testFrontendRequestWithNinoJson))
         status(result)        mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) must include("Unexpected error")
       }
       "must return bad request when the request is not valid" in {
-        val result = testController.registerIndividualWithId()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))
+        val result = testController.registerIndividualWithNino()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))
+        result.toString mustBe Future.successful(BadRequest("")).toString
+      }
+    }
 
+    "registerIndividualWithUtr" - {
+      "must return success response when the service can retrieve a business partner record" in {
+        when(mockService.registerIndividualWithUtr(any())(any())).thenReturn(Future(Right(testServiceResponseSuccess)))
+        val result = testController.registerIndividualWithUtr()(fakeRequestWithJsonBody(testFrontendRequestWithUtrJson))
+        status(result)        mustBe OK
+        contentAsJson(result) mustBe Json.toJson(testServiceResponseSuccess)
+      }
+      "must return not found response when the service cannot retrieve a business partner record" in {
+        when(mockService.registerIndividualWithUtr(any())(any())).thenReturn(Future(Left(NotFoundError)))
+        val result = testController.registerIndividualWithUtr()(fakeRequestWithJsonBody(testFrontendRequestWithUtrJson))
+        status(result)        mustBe NOT_FOUND
+        contentAsString(result) must include("Could not find or create a Sole Trader record for this user")
+      }
+      "must return internal server error response when the service returns an unexpected error" in {
+        when(mockService.registerIndividualWithUtr(any())(any())).thenReturn(Future(Left(InternalServerError)))
+        val result = testController.registerIndividualWithUtr()(fakeRequestWithJsonBody(testFrontendRequestWithUtrJson))
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Unexpected error")
+      }
+      "must return bad request when the request is not valid" in {
+        val result = testController.registerIndividualWithUtr()(fakeRequestWithJsonBody(Json.toJson("invalid timmy")))
         result.toString mustBe Future.successful(BadRequest("")).toString
       }
     }

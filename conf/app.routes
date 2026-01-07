@@ -1,4 +1,5 @@
 # microservice specific routes
 
-POST         /individual/nino                uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithId()
+POST         /individual/nino                uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithNino()
+POST         /individual/utr                 uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithUtr()
 POST         /organisation/utr               uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerOrganisationWithId()

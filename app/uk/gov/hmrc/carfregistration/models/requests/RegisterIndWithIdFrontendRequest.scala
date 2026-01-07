@@ -16,18 +16,48 @@
 
 package uk.gov.hmrc.carfregistration.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OFormat, Writes}
 
-case class RegisterIndWithIdFrontendRequest(
+sealed trait RegisterIndWithIdFrontendRequest {
+  val requiresNameMatch: Boolean
+  val IDNumber: String
+  val IDType: String
+  val firstName: String
+  val lastName: String
+}
+
+object RegisterIndWithIdFrontendRequest {
+  implicit val writes: Writes[RegisterIndWithIdFrontendRequest] = Writes {
+    case r: RegisterIndWithNinoFrontendRequest =>
+      Json.toJson(r)(RegisterIndWithNinoFrontendRequest.format)
+
+    case r: RegisterIndWithUtrFrontendRequest =>
+      Json.toJson(r)(RegisterIndWithUtrFrontendRequest.format)
+  }
+}
+
+case class RegisterIndWithNinoFrontendRequest(
     requiresNameMatch: Boolean,
     IDNumber: String,
     IDType: String,
     dateOfBirth: String,
     firstName: String,
     lastName: String
-)
+) extends RegisterIndWithIdFrontendRequest
 
-object RegisterIndWithIdFrontendRequest {
-  implicit val format: OFormat[RegisterIndWithIdFrontendRequest] =
-    Json.format[RegisterIndWithIdFrontendRequest]
+object RegisterIndWithNinoFrontendRequest {
+  implicit val format: OFormat[RegisterIndWithNinoFrontendRequest] =
+    Json.format[RegisterIndWithNinoFrontendRequest]
+}
+
+case class RegisterIndWithUtrFrontendRequest(
+    requiresNameMatch: Boolean,
+    IDNumber: String,
+    IDType: String,
+    firstName: String,
+    lastName: String
+) extends RegisterIndWithIdFrontendRequest
+
+object RegisterIndWithUtrFrontendRequest {
+  implicit val format: OFormat[RegisterIndWithUtrFrontendRequest] = Json.format[RegisterIndWithUtrFrontendRequest]
 }

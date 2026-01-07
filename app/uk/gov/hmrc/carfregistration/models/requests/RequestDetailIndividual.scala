@@ -35,7 +35,10 @@ object RequestDetailIndividual {
       IDNumber = frontendRequest.IDNumber,
       IDType = frontendRequest.IDType,
       individual = IndividualDetails(
-        dateOfBirth = frontendRequest.dateOfBirth,
+        dateOfBirth = frontendRequest match {
+          case RegisterIndWithNinoFrontendRequest(_, _, _, dateOfBirth, _, _) => Some(dateOfBirth)
+          case _                                                              => None
+        },
         firstName = frontendRequest.firstName,
         lastName = frontendRequest.lastName
       ),
@@ -43,7 +46,7 @@ object RequestDetailIndividual {
     )
 }
 
-case class IndividualDetails(dateOfBirth: String, firstName: String, lastName: String)
+case class IndividualDetails(dateOfBirth: Option[String], firstName: String, lastName: String)
 
 object IndividualDetails {
   implicit val format: OFormat[IndividualDetails] = Json.format[IndividualDetails]

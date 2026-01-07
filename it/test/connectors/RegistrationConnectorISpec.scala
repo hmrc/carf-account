@@ -94,7 +94,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       requiresNameMatch = true,
       IDNumber = "test-IDNumber",
       IDType = "test-IDType",
-      individual = IndividualDetails(dateOfBirth = "test-DOB", firstName = "Professor", lastName = "Rowan"),
+      individual = IndividualDetails(dateOfBirth = Some("test-DOB"), firstName = "Professor", lastName = "Rowan"),
       isAnAgent = false
     )
   )
@@ -163,7 +163,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     )
   )
 
-  "individualWithNino" should {
+  "individualWithId" should {
     "successfully retrieve the api response" in {
       stubFor(
         post(urlPathMatching("/dac6/dct102b/v1"))
@@ -173,9 +173,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
               .withBody(testApiResponseJson)
           )
       )
-
-      val result = connector.individualWithNino(testRequest).value.futureValue
-
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Right(testApiResponseBody)
     }
 
@@ -188,9 +186,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
               .withBody(Json.toJson("invalid response").toString)
           )
       )
-
-      val result = connector.individualWithNino(testRequest).value.futureValue
-
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(JsonValidationError)
     }
 
@@ -203,9 +199,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
               .withBody(Json.toJson("test_body").toString)
           )
       )
-
-      val result = connector.individualWithNino(testRequest).value.futureValue
-
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(NotFoundError)
     }
 
@@ -218,9 +212,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
               .withBody(Json.toJson("test_body").toString)
           )
       )
-
-      val result = connector.individualWithNino(testRequest).value.futureValue
-
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
   }
