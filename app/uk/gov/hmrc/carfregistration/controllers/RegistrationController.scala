@@ -22,7 +22,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
 import uk.gov.hmrc.carfregistration.models.NotFoundError
-import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdFrontendRequest, RegisterIndWithNinoFrontendRequest, RegisterIndWithUtrFrontendRequest, RegisterOrganisationWithIdFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,9 +37,9 @@ class RegistrationController @Inject() (
     with Logging {
 
   def registerIndividualWithNino(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    withJsonBody[RegisterIndWithNinoFrontendRequest] { request =>
+    withJsonBody[RegWithNinoIndFrontendRequest] { request =>
       logger.debug(s"registerIndividualWithNino \n-> $request")
-      service.registerIndividualWithNino(request).flatMap {
+      service.registerIndWithNino(request).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
           Future.successful(NotFound("Could not find or create a business partner record for this user"))
@@ -49,9 +49,9 @@ class RegistrationController @Inject() (
   }
 
   def registerIndividualWithUtr(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    withJsonBody[RegisterIndWithUtrFrontendRequest] { request =>
+    withJsonBody[RegWithUtrIndFrontendRequest] { request =>
       logger.debug(s"registerIndividualWithUtr request = \n-> $request")
-      service.registerIndividualWithUtr(request).flatMap {
+      service.registerIndWithUtr(request).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
           Future.successful(NotFound("Could not find or create a Sole Trader record for this user"))
@@ -60,10 +60,23 @@ class RegistrationController @Inject() (
     }
   }
 
-  def registerOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    withJsonBody[RegisterOrganisationWithIdFrontendRequest] { organisationRequest =>
-      logger.debug(s" registerOrganisationWithId request = \n-> $organisationRequest")
-      service.registerOrganisationWithId(organisationRequest).flatMap {
+  def registerUserEntryOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
+    withJsonBody[RegWithIdUserEntryOrgFrontendRequest] { organisationRequest =>
+      logger.debug(s"RegisterUserEnteredOrganisationWithIdFrontendRequest request = \n-> $organisationRequest")
+      service.registerUserEntryOrgWithId(organisationRequest).flatMap {
+        case Right(response)     => Future.successful(Ok(Json.toJson(response)))
+        case Left(NotFoundError) =>
+          Future.successful(NotFound("Could not find or create a business record for this organisation"))
+        case Left(_)             =>
+          Future.successful(InternalServerError("Unexpected error"))
+      }
+    }
+  }
+
+  def registerAutoMatchOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
+    withJsonBody[RegWithIdAutoMatchOrgFrontendRequest] { organisationRequest =>
+      logger.debug(s"RegisterAutoMatchOrganisationWithIdFrontendRequest request = \n-> $organisationRequest")
+      service.registerAutoMatchOrgWithId(organisationRequest).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
           Future.successful(NotFound("Could not find or create a business record for this organisation"))

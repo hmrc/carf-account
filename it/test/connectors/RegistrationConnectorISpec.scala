@@ -24,7 +24,7 @@ import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.libs.json.Json
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
-import uk.gov.hmrc.carfregistration.models.requests.{IndividualDetails, OrganisationDetails, RegisterIndWithIdAPIRequest, RegisterOrganisationWithIdAPIRequest, RegisterOrganisationWithIdFrontendRequest, RequestCommon, RequestDetailIndividual, RequestDetailOrganisation}
+import uk.gov.hmrc.carfregistration.models.requests.*
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -35,7 +35,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
 
   val connector: RegistrationConnector = app.injector.instanceOf[RegistrationConnector]
 
-  val testApiResponseBody = RegisterIndWithIdAPIResponse(
+  val testApiResponseBody = RegWithIdIndApiResponse(
     responseCommon = ResponseCommon(status = "200"),
     responseDetail = ResponseDetail(
       SAFEID = "Test-SafeId",
@@ -87,14 +87,14 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
                               |  }
                               |}""".stripMargin
 
-  val testRequest = RegisterIndWithIdAPIRequest(
+  val testRequest = RegWithIdIndApiRequest(
     requestCommon =
       RequestCommon(acknowledgementReference = "test-Ref", receiptDate = "test-Date", regime = "test-Regime"),
     requestDetail = RequestDetailIndividual(
       requiresNameMatch = true,
       IDNumber = "test-IDNumber",
       IDType = "test-IDType",
-      individual = IndividualDetails(dateOfBirth = Some("test-DOB"), firstName = "Professor", lastName = "Rowan"),
+      individual = IndividualDetailsWithNino(dateOfBirth = "test-DOB", firstName = "Professor", lastName = "Rowan"),
       isAnAgent = false
     )
   )
@@ -108,23 +108,22 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     countryCode = "GB"
   )
 
-  val testOrganisationFrontendRequest = RegisterOrganisationWithIdFrontendRequest(
+  val testUserEnteredOrgWithUtrFrontendRequest = RegWithIdUserEntryOrgFrontendRequest(
     requiresNameMatch = false,
     IDType = "UTR",
     IDNumber = "1234567890",
-    organisationName = Some("Test Limited"),
-    organisationType = Some("0001")
+    organisationName = "Test Limited",
+    organisationType = "0001"
   )
 
-  val testOrganisationApiRequest = RegisterOrganisationWithIdAPIRequest(
+  val testOrganisationApiRequest = RegWithIdOrgApiRequest(
     requestCommon = RequestCommon(
       acknowledgementReference = "test-Ref",
       receiptDate = "test-Date",
       regime = "test-Regime"
     ),
-    requestDetail = RequestDetailOrganisation(testOrganisationFrontendRequest)
+    requestDetail = RequestDetailOrgUserEntry(testUserEnteredOrgWithUtrFrontendRequest)
   )
-
 
   val testOrganisationApiResponseJson: String =
     """{
@@ -146,11 +145,11 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     }
   }"""
 
-  val testOrganisationApiResponseBody = RegisterOrganisationWithIdAPIResponse(
+  val testOrganisationApiResponseBody = RegWithIdOrgApiResponse(
     responseCommon = ResponseCommon(status = "OK"),
     responseDetail = ResponseDetail(
       SAFEID = "XE0000123456789",
-      organisation = Some(OrganisationResponse(organisationName = "Test Limited", code = "0001")),
+      organisation = Some(OrganisationResponse(organisationName = "Test Limited", code = Some("0001"))),
       individual = None,
       address = AddressResponse(
         addressLine1 = "123 Test Street",

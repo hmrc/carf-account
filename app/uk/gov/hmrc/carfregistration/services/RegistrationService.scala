@@ -18,7 +18,7 @@ package uk.gov.hmrc.carfregistration.services
 
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
 import uk.gov.hmrc.carfregistration.models.requests.*
-import uk.gov.hmrc.carfregistration.models.responses.{RegisterIndWithIdFrontendResponse, RegisterOrganisationWithIdFrontendResponse}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse}
 import uk.gov.hmrc.carfregistration.models.{ApiError, UuidGen}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -30,51 +30,67 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
     ec: ExecutionContext
 ) {
 
-  def registerIndividualWithNino(
-      frontendRequest: RegisterIndWithIdFrontendRequest
-  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterIndWithIdFrontendResponse]] =
+  def registerIndWithNino(
+      frontendRequest: RegWithIdIndFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithIdIndFrontendResponse]] =
     connector
       .individualWithId(
-        RegisterIndWithIdAPIRequest(
+        RegWithIdIndApiRequest(
           requestCommon = RequestCommon("NINO", uuidGen, clock),
           requestDetail = RequestDetailIndividual(frontendRequest)
         )
       )
       .value
       .map {
-        case Right(response) => Right(RegisterIndWithIdFrontendResponse(response))
+        case Right(response) => RegWithIdIndFrontendResponse.apply(response)
         case Left(error)     => Left(error)
       }
 
-  def registerIndividualWithUtr(
-      frontendRequest: RegisterIndWithIdFrontendRequest
-  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterIndWithIdFrontendResponse]] =
+  def registerIndWithUtr(
+      frontendRequest: RegWithUtrIndFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithIdIndFrontendResponse]] =
     connector
       .individualWithId(
-        RegisterIndWithIdAPIRequest(
+        RegWithIdIndApiRequest(
           requestCommon = RequestCommon("UTR", uuidGen, clock),
           requestDetail = RequestDetailIndividual(frontendRequest)
         )
       )
       .value
       .map {
-        case Right(response) => Right(RegisterIndWithIdFrontendResponse(response))
+        case Right(response) => RegWithIdIndFrontendResponse.apply(response)
         case Left(error)     => Left(error)
       }
 
-  def registerOrganisationWithId(
-      frontendOrganisationRequest: RegisterOrganisationWithIdFrontendRequest
-  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegisterOrganisationWithIdFrontendResponse]] =
+  def registerUserEntryOrgWithId(
+      frontendRequest: RegWithIdUserEntryOrgFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithIdOrgFrontendResponse]] =
     connector
       .organisationWithID(
-        RegisterOrganisationWithIdAPIRequest(
+        RegWithIdOrgApiRequest(
           requestCommon = RequestCommon("UTR", uuidGen, clock),
-          requestDetail = RequestDetailOrganisation(frontendOrganisationRequest)
+          requestDetail = RequestDetailOrgUserEntry(frontendRequest)
         )
       )
       .value
       .map {
-        case Right(response) => Right(RegisterOrganisationWithIdFrontendResponse(response))
+        case Right(response) => RegWithIdOrgFrontendResponse.apply(response)
+        case Left(error)     => Left(error)
+      }
+
+  def registerAutoMatchOrgWithId(
+      frontendRequest: RegWithIdAutoMatchOrgFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithIdOrgFrontendResponse]] =
+    connector
+      .organisationWithID(
+        RegWithIdOrgApiRequest(
+          requestCommon = RequestCommon("UTR", uuidGen, clock),
+          requestDetail = RequestDetailOrgCtAutoMatch(frontendRequest)
+        )
+      )
+      .value
+      .map {
+        case Right(response) => RegWithIdOrgFrontendResponse.apply(response)
         case Left(error)     => Left(error)
       }
 }

@@ -18,8 +18,8 @@ package uk.gov.hmrc.carfregistration.models.requests
 
 import play.api.libs.json.{Json, OFormat}
 
-case class RegisterOrganisationWithIdAPIRequest(requestCommon: RequestCommon, requestDetail: RequestDetailOrganisation)
+case class RegWithIdOrgApiRequest(requestCommon: RequestCommon, requestDetail: RequestDetailOrg)
 
-object RegisterOrganisationWithIdAPIRequest {
-  implicit val format: OFormat[RegisterOrganisationWithIdAPIRequest] = Json.format[RegisterOrganisationWithIdAPIRequest]
+object RegWithIdOrgApiRequest {
+  implicit val format: OFormat[RegWithIdOrgApiRequest] = Json.format[RegWithIdOrgApiRequest]
 }

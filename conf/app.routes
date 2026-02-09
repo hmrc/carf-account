@@ -1,5 +1,6 @@
 # microservice specific routes
 
-POST         /individual/nino                uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithNino()
-POST         /individual/utr                 uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithUtr()
-POST         /organisation/utr               uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerOrganisationWithId()
+POST        /individual/nino                       uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithNino()
+POST        /individual/utr                        uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithUtr()
+POST        /organisation/utr/user-entered         uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerUserEntryOrganisationWithId()
+POST        /organisation/utr/ct-auto-match        uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerAutoMatchOrganisationWithId()

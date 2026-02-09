@@ -23,8 +23,8 @@ import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.models.requests.{RegisterIndWithIdAPIRequest, RegisterOrganisationWithIdAPIRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{RegisterIndWithIdAPIResponse, RegisterOrganisationWithIdAPIResponse}
+import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdIndApiRequest, RegWithIdOrgApiRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndApiResponse, RegWithIdOrgApiResponse}
 import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -41,18 +41,18 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
   private val backendBaseUrl = config.registerWithIdBaseUrl
 
   def individualWithId(
-      request: RegisterIndWithIdAPIRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
+      request: RegWithIdIndApiRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdIndApiResponse] =
     registerIndividualWithId(request, url"$backendBaseUrl")
 
-  def organisationWithID(request: RegisterOrganisationWithIdAPIRequest)(implicit
+  def organisationWithID(request: RegWithIdOrgApiRequest)(implicit
       hc: HeaderCarrier
-  ): EitherT[Future, ApiError, RegisterOrganisationWithIdAPIResponse] =
+  ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
     registerOrganisationWithID(request, url"$backendBaseUrl")
 
-  private def registerOrganisationWithID(request: RegisterOrganisationWithIdAPIRequest, endpoint: URL)(implicit
+  private def registerOrganisationWithID(request: RegWithIdOrgApiRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
-  ): EitherT[Future, ApiError, RegisterOrganisationWithIdAPIResponse] =
+  ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
     EitherT {
       http
         .post(endpoint)
@@ -60,11 +60,11 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         .execute[HttpResponse]
         .map {
           case response if response.status == OK        =>
-            Try(response.json.as[RegisterOrganisationWithIdAPIResponse]) match {
+            Try(response.json.as[RegWithIdOrgApiResponse]) match {
               case Success(data)      => Right(data)
               case Failure(exception) =>
                 logger.warn(
-                  s"Error parsing response as RegisterOrganisationWithIDAPIResponse with endpoint: ${endpoint.toURI}"
+                  s"Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                 )
                 Left(JsonValidationError)
             }
@@ -80,9 +80,9 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
     }
 
   private def registerIndividualWithId(
-      request: RegisterIndWithIdAPIRequest,
+      request: RegWithIdIndApiRequest,
       endpoint: URL
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegisterIndWithIdAPIResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdIndApiResponse] =
     EitherT {
       http
         .post(endpoint)
@@ -90,11 +90,11 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         .execute[HttpResponse]
         .map {
           case response if response.status == OK        =>
-            Try(response.json.as[RegisterIndWithIdAPIResponse]) match {
+            Try(response.json.as[RegWithIdIndApiResponse]) match {
               case Success(data)      => Right(data)
               case Failure(exception) =>
                 logger.warn(
-                  s"Error parsing response as RegisterIndividualWithIdResponse with endpoint: ${endpoint.toURI}"
+                  s"Error parsing response as RegWithIdIndApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                 )
                 Left(JsonValidationError)
             }

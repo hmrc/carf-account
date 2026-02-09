@@ -18,7 +18,7 @@ package uk.gov.hmrc.carfregistration.models.requests
 
 import play.api.libs.json.{Json, OFormat, Writes}
 
-sealed trait RegisterIndWithIdFrontendRequest {
+sealed trait RegWithIdIndFrontendRequest {
   val requiresNameMatch: Boolean
   val IDNumber: String
   val IDType: String
@@ -26,38 +26,38 @@ sealed trait RegisterIndWithIdFrontendRequest {
   val lastName: String
 }
 
-object RegisterIndWithIdFrontendRequest {
-  implicit val writes: Writes[RegisterIndWithIdFrontendRequest] = Writes {
-    case r: RegisterIndWithNinoFrontendRequest =>
-      Json.toJson(r)(RegisterIndWithNinoFrontendRequest.format)
+object RegWithIdIndFrontendRequest {
+  implicit val writes: Writes[RegWithIdIndFrontendRequest] = Writes {
+    case r: RegWithNinoIndFrontendRequest =>
+      Json.toJson(r)(RegWithNinoIndFrontendRequest.format)
 
-    case r: RegisterIndWithUtrFrontendRequest =>
-      Json.toJson(r)(RegisterIndWithUtrFrontendRequest.format)
+    case r: RegWithUtrIndFrontendRequest =>
+      Json.toJson(r)(RegWithUtrIndFrontendRequest.format)
   }
 }
 
-case class RegisterIndWithNinoFrontendRequest(
+case class RegWithNinoIndFrontendRequest(
     requiresNameMatch: Boolean,
     IDNumber: String,
     IDType: String,
     dateOfBirth: String,
     firstName: String,
     lastName: String
-) extends RegisterIndWithIdFrontendRequest
+) extends RegWithIdIndFrontendRequest
 
-object RegisterIndWithNinoFrontendRequest {
-  implicit val format: OFormat[RegisterIndWithNinoFrontendRequest] =
-    Json.format[RegisterIndWithNinoFrontendRequest]
+object RegWithNinoIndFrontendRequest {
+  implicit val format: OFormat[RegWithNinoIndFrontendRequest] =
+    Json.format[RegWithNinoIndFrontendRequest]
 }
 
-case class RegisterIndWithUtrFrontendRequest(
+case class RegWithUtrIndFrontendRequest(
     requiresNameMatch: Boolean,
     IDNumber: String,
     IDType: String,
     firstName: String,
     lastName: String
-) extends RegisterIndWithIdFrontendRequest
+) extends RegWithIdIndFrontendRequest
 
-object RegisterIndWithUtrFrontendRequest {
-  implicit val format: OFormat[RegisterIndWithUtrFrontendRequest] = Json.format[RegisterIndWithUtrFrontendRequest]
+object RegWithUtrIndFrontendRequest {
+  implicit val format: OFormat[RegWithUtrIndFrontendRequest] = Json.format[RegWithUtrIndFrontendRequest]
 }

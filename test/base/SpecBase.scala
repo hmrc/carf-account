@@ -30,6 +30,7 @@ import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers}
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.{DefaultAwaitTimeout, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.carfregistration.config.Constants.ukTimeZoneStringId
+import uk.gov.hmrc.carfregistration.models.responses.AddressResponse
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.{Clock, Instant, ZoneId}
@@ -64,4 +65,13 @@ trait SpecBase
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1718118467838L), ZoneId.of(ukTimeZoneStringId))
+
+  val testAddress = AddressResponse(
+    addressLine1 = "123 Main Street",
+    addressLine2 = Some("Birmingham"),
+    addressLine3 = None,
+    addressLine4 = None,
+    postalCode = Some("B23 2AZ"),
+    countryCode = "GB"
+  )
 }

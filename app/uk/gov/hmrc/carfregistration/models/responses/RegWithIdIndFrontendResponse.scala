@@ -17,8 +17,9 @@
 package uk.gov.hmrc.carfregistration.models.responses
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.carfregistration.models.{ApiError, MissingFieldsError}
 
-case class RegisterIndWithIdFrontendResponse(
+case class RegWithIdIndFrontendResponse(
     safeId: String,
     firstName: String,
     lastName: String,
@@ -26,18 +27,24 @@ case class RegisterIndWithIdFrontendResponse(
     address: AddressResponse
 )
 
-object RegisterIndWithIdFrontendResponse {
-  implicit val format: OFormat[RegisterIndWithIdFrontendResponse] =
-    Json.format[RegisterIndWithIdFrontendResponse]
+object RegWithIdIndFrontendResponse {
+  implicit val format: OFormat[RegWithIdIndFrontendResponse] =
+    Json.format[RegWithIdIndFrontendResponse]
 
-  def apply(apiResponse: RegisterIndWithIdAPIResponse): RegisterIndWithIdFrontendResponse =
-    RegisterIndWithIdFrontendResponse(
-      safeId = apiResponse.responseDetail.SAFEID,
-      firstName = apiResponse.responseDetail.individual.map(_.firstName).getOrElse("firstName"),
-      lastName = apiResponse.responseDetail.individual.map(_.lastName).getOrElse("lastName"),
-      middleName = apiResponse.responseDetail.individual.flatMap(_.middleName),
-      address = apiResponse.responseDetail.address
-    )
+  def apply(apiResponse: RegWithIdIndApiResponse): Either[ApiError, RegWithIdIndFrontendResponse] =
+    apiResponse.responseDetail.individual match {
+      case Some(individualResponse: IndividualResponse) =>
+        Right(
+          RegWithIdIndFrontendResponse(
+            safeId = apiResponse.responseDetail.SAFEID,
+            firstName = individualResponse.firstName,
+            lastName = individualResponse.lastName,
+            middleName = individualResponse.middleName,
+            address = apiResponse.responseDetail.address
+          )
+        )
+      case None                                         => Left(MissingFieldsError)
+    }
 }
 
 case class IndividualResponse(
