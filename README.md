@@ -53,15 +53,15 @@ Port: 17001
 ### How to sign in locally and on staging
 
 Local:
-http://localhost:9949/auth-login-stub/gg-sign-in?continue=http://localhost:17000/register-for-carf
+http://localhost:9949/auth-login-stub/gg-sign-in?continue=http://localhost:17000/register-for-cryptoasset-reporting
 
 Staging:
-https://www.staging.tax.service.gov.uk/register-for-carf
+https://www.staging.tax.service.gov.uk/register-for-cryptoasset-reporting
 
 ### Auth wizard setups
 Organisation with UTR:
 ```
-Redirect URL: http://localhost:17000/register-for-carf
+Redirect URL: http://localhost:17000/register-for-cryptoasset-reporting
 Credential Strength: Strong
 Confidence Level: 50
 Affinity Group: Organisation
