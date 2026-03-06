@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,3 +29,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   private val registerWithIdHost: String = servicesConfig.baseUrl("register-with-id")
   val registerWithIdBaseUrl: String      =
     s"$registerWithIdHost${config.get[String]("microservice.services.register-with-id.uri")}"
+
+  private val createSubscriptionHost: String = servicesConfig.baseUrl("create-subscription")
+  val createSubscriptionBaseUrl: String      =
+    s"$createSubscriptionHost${config.get[String]("microservice.services.create-subscription.uri")}"

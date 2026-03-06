@@ -22,24 +22,24 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import org.scalatest.matchers.must.Matchers
 
 trait ApplicationWithWiremock
-  extends AnyWordSpec
+    extends AnyWordSpec
     with GuiceOneServerPerSuite
     with BeforeAndAfterAll
     with BeforeAndAfterEach:
 
   lazy val wireMock = new WireMock
 
-  val extraConfig: Map[String, Any] = {
+  val extraConfig: Map[String, Any] =
     Map[String, Any](
-      "microservice.services.auth.host" -> WireMockConstants.stubHost,
-      "microservice.services.auth.port" -> WireMockConstants.stubPort,
-      "microservice.services.register-with-id.host" -> WireMockConstants.stubHost,
-      "microservice.services.register-with-id.port" -> WireMockConstants.stubPort
+      "microservice.services.auth.host"                -> WireMockConstants.stubHost,
+      "microservice.services.auth.port"                -> WireMockConstants.stubPort,
+      "microservice.services.register-with-id.host"    -> WireMockConstants.stubHost,
+      "microservice.services.register-with-id.port"    -> WireMockConstants.stubPort,
+      "microservice.services.create-subscription.host" -> WireMockConstants.stubHost,
+      "microservice.services.create-subscription.port" -> WireMockConstants.stubPort
     )
-  }
 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure(extraConfig)
