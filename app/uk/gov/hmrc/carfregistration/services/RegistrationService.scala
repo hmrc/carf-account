@@ -18,7 +18,7 @@ package uk.gov.hmrc.carfregistration.services
 
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
 import uk.gov.hmrc.carfregistration.models.requests.*
-import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdIndFrontendResponse}
 import uk.gov.hmrc.carfregistration.models.{ApiError, UuidGen}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -93,4 +93,27 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
         case Right(response) => RegWithIdOrgFrontendResponse.apply(response)
         case Left(error)     => Left(error)
       }
+
+  def registerIndWithoutId(
+      frontendRequest: RegWithoutIdIndFrontendRequest
+  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithoutIdIndFrontendResponse]] = {
+
+    val apiRequest = RegWithoutIdIndApiRequest(
+      requestCommon = RequestCommon("CARF", uuidGen, clock),
+      requestDetail = RequestDetailIndividualWithoutId(
+        individual = IndividualDetailsWithoutId(
+          firstName = frontendRequest.firstName,
+          lastName = frontendRequest.lastName,
+          dateOfBirth = frontendRequest.dateOfBirth
+        ),
+        address = frontendRequest.address,
+        contactDetails = frontendRequest.contactDetails
+      )
+    )
+
+    connector.individualWithoutId(apiRequest).value.map {
+      case Right(apiResponse) => Right(RegWithoutIdIndFrontendResponse(apiResponse.responseDetail.SAFEID))
+      case Left(error)        => Left(error)
+    }
+  }
 }

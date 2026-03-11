@@ -22,10 +22,10 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
 import uk.gov.hmrc.carfregistration.models.*
-import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.requests.{AddressDetailsFrontend, ContactDetailsFrontend, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdIndFrontendRequest}
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.services.RegistrationService
-
+import org.scalatest.wordspec.AnyWordSpec
 import java.util.UUID
 import scala.concurrent.Future
 
@@ -128,6 +128,24 @@ class RegistrationServiceSpec extends SpecBase {
     organisationName = "AutoMatch Ltd",
     code = Some("0002"),
     address = testAddressResponse
+  )
+
+  val frontendRequest = RegWithoutIdIndFrontendRequest(
+    firstName = "John",
+    lastName = "Doe",
+    dateOfBirth = "1990-01-01",
+    address = AddressDetailsFrontend(
+      addressLine1 = "123 Test Street",
+      addressLine2 = Some("Flat 1"),
+      addressLine3 = None,
+      townOrCity = "France",
+      postalCode = Some("75008"),
+      countryCode = "FR"
+    ),
+    contactDetails = ContactDetailsFrontend(
+      emailAddress = "john.doe@example.com",
+      phoneNumber = Some("07123456789")
+    )
   )
 
   override def beforeEach(): Unit = {
@@ -277,6 +295,52 @@ class RegistrationServiceSpec extends SpecBase {
         val result =
           testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
 
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerIndWithoutId" - {
+
+      "must return success frontend response when the connector returns a successful response" in {
+
+        val apiResponse = RegWithoutIdIndApiResponse(
+          responseCommon = ResponseCommon(status = "OK"),
+          responseDetail = RegWithoutIdIndApiResponseDetail(
+            SAFEID = "SAFE123456"
+          )
+        )
+
+        when(mockConnector.individualWithoutId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](apiResponse))
+
+        val result = testService.registerIndWithoutId(frontendRequest).futureValue
+
+        result mustBe Right(RegWithoutIdIndFrontendResponse("SAFE123456"))
+      }
+
+      "return error when connector returns an error" in {
+
+        when(mockConnector.individualWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdIndApiResponse](NotFoundError))
+
+        val result = testService.registerIndWithoutId(frontendRequest).futureValue
+
+        result mustBe Left(NotFoundError)
+      }
+
+      "must return an internal server error when the connector returns an internal server error" in {
+        when(mockConnector.individualWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdIndApiResponse](InternalServerError))
+
+        val result = testService.registerIndWithoutId(frontendRequest).futureValue
+        result mustBe Left(InternalServerError)
+      }
+
+      "must return a json validation error when the connector returns json validation error" in {
+        when(mockConnector.individualWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdIndApiResponse](JsonValidationError))
+
+        val result = testService.registerIndWithoutId(frontendRequest).futureValue
         result mustBe Left(JsonValidationError)
       }
     }

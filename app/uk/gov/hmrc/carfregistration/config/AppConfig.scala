@@ -30,6 +30,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val registerWithIdBaseUrl: String      =
     s"$registerWithIdHost${config.get[String]("microservice.services.register-with-id.uri")}"
 
+  private val registerWithoutIdHost: String = servicesConfig.baseUrl("register-without-id")
+
+  val registerWithoutIdBaseUrl: String =
+    s"$registerWithoutIdHost${config.get[String]("microservice.services.register-without-id.uri")}"
+
   private val createSubscriptionHost: String = servicesConfig.baseUrl("create-subscription")
   val createSubscriptionBaseUrl: String      =
     s"$createSubscriptionHost${config.get[String]("microservice.services.create-subscription.uri")}"
