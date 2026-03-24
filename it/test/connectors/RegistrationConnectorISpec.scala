@@ -16,17 +16,17 @@
 
 package connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalToJson, post, stubFor, urlPathMatching}
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import itutil.ApplicationWithWiremock
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.must.Matchers.mustBe
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.*
 import play.api.libs.json.Json
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
 import uk.gov.hmrc.carfregistration.models.requests.*
 import uk.gov.hmrc.carfregistration.models.responses.*
-import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.HeaderCarrier
 
 class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutures with IntegrationPatience {
@@ -87,7 +87,22 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
                               |  }
                               |}""".stripMargin
 
-  val testRequest = RegWithIdIndApiRequest(
+  val testApiErrorDetailResponseJson: String = """{
+                                              |  "errorDetail": {
+                                              |    "errorCode": "400",
+                                              |    "errorMessage": "Test Error Message",
+                                              |    "source": "Test",
+                                              |    "sourceFaultDetail": {
+                                              |      "detail": [
+                                              |        "Test Error Detail"
+                                              |      ]
+                                              |    },
+                                              |    "timestamp": "2020-09-25T21:54:12.015Z",
+                                              |    "correlationId": "1ae81b45-41b4-4642-ae1c-db1126900001"
+                                              |  }
+                                              |}""".stripMargin
+
+  val testRegisterWithIdRequestInd = RegWithIdIndApiRequestDetails(
     requestCommon =
       RequestCommon(acknowledgementReference = "test-Ref", receiptDate = "test-Date", regime = "test-Regime"),
     requestDetail = RequestDetailIndividual(
@@ -98,6 +113,8 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       isAnAgent = false
     )
   )
+
+  val testRequest = RegWithIdIndApiRequest(registerWithIDRequest = testRegisterWithIdRequestInd)
 
   private def testAddressResponse = AddressResponse(
     addressLine1 = "64",
@@ -130,7 +147,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     organisationType = "0001"
   )
 
-  val testOrganisationApiRequest = RegWithIdOrgApiRequest(
+  val testRegisterWithIdRequestOrg = RegWithIdOrgApiRequestDetails(
     requestCommon = RequestCommon(
       acknowledgementReference = "test-Ref",
       receiptDate = "test-Date",
@@ -138,6 +155,8 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     ),
     requestDetail = RequestDetailOrgUserEntry(testUserEnteredOrgWithUtrFrontendRequest)
   )
+
+  val testOrganisationApiRequest = RegWithIdOrgApiRequest(registerWithIDRequest = testRegisterWithIdRequestOrg)
 
   val testOrganisationApiResponseJson: String =
     """{
@@ -216,7 +235,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
   "individualWithId" should {
     "successfully retrieve the api response" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -229,7 +248,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
 
     "return a Json validation error if unexpected response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -240,9 +259,22 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       result mustBe Left(JsonValidationError)
     }
 
+    "return an error response if 400 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
     "return a not found error if 404 status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
@@ -253,13 +285,39 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       result mustBe Left(NotFoundError)
     }
 
-    "return an internal server error if 500 status response is returned from backend" in {
+    "return an error response if 422 status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(UNPROCESSABLE_ENTITY)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return an error response if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(INTERNAL_SERVER_ERROR)
-              .withBody(Json.toJson("test_body").toString)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return an error response if 503 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(SERVICE_UNAVAILABLE)
+              .withBody(testApiErrorDetailResponseJson)
           )
       )
       val result = connector.individualWithId(testRequest).value.futureValue
@@ -305,7 +363,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     "successfully retrieve the api response" in {
       stubFor(
         post(urlPathMatching("/dac6/dprs0101/v1"))
-          .withRequestBody(equalToJson(expectedWithoutIdRequestJson, true , true))
+          .withRequestBody(equalToJson(expectedWithoutIdRequestJson, true, true))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -314,7 +372,9 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       )
 
       val result = connector.individualWithoutId(testWithoutIdRequest).value.futureValue
-      result mustBe Right(RegWithoutIdIndApiResponse(ResponseCommon("OK"), RegWithoutIdIndApiResponseDetail("SAFE123456")))
+      result mustBe Right(
+        RegWithoutIdIndApiResponse(ResponseCommon("OK"), RegWithoutIdIndApiResponseDetail("SAFE123456"))
+      )
     }
 
     "return JsonValidationError if invalid JSON returned" in {
@@ -351,7 +411,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
   "organisationWithID" should {
     "successfully retrieve the api response" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -366,7 +426,7 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
 
     "return a Json validation error if unexpected response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -379,31 +439,68 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       result mustBe Left(JsonValidationError)
     }
 
+    "return an error response if 400 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
     "return a not found error if 404 status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
+              .withBody(Json.toJson("test_body").toString)
           )
       )
-
-      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
-
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(NotFoundError)
     }
 
-    "return an internal server error if 500 status response is returned from backend" in {
+    "return an error response if 422 status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102b/v1"))
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(UNPROCESSABLE_ENTITY)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return an error response if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
           .willReturn(
             aResponse()
               .withStatus(INTERNAL_SERVER_ERROR)
+              .withBody(testApiErrorDetailResponseJson)
           )
       )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
 
-      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
-
+    "return an error response if 503 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(SERVICE_UNAVAILABLE)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
   }

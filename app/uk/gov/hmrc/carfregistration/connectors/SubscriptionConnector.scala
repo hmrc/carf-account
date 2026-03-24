@@ -24,7 +24,7 @@ import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.models.requests.SubscriptionRequest
-import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetails, InternalServerError}
+import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -77,7 +77,7 @@ class SubscriptionConnector @Inject() (
     }
 
   private def logDownStreamError(status: Int, body: String): Unit = {
-    val error = Try(Json.parse(body).validate[ErrorDetails])
+    val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
       case Success(JsSuccess(value, _)) =>
         logger.warn(
