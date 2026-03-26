@@ -17,20 +17,18 @@
 package controllers
 
 import base.SpecBase
+import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.BadRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.carfregistration.controllers.RegistrationController
-import uk.gov.hmrc.carfregistration.models.requests.{AddressDetailsFrontend, ContactDetailsFrontend, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdIndFrontendRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdIndFrontendResponse}
-import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
+import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.should.Matchers
-import play.api.test.FakeRequest
 
 import scala.concurrent.Future
 
@@ -297,12 +295,12 @@ class RegistrationControllerSpec extends SpecBase {
 
       "must return OK when the service returns a successful response" in {
         val apiResponse =
-          RegWithoutIdIndFrontendResponse(
+          RegWithoutIdFrontendResponse(
             safeId = "SAFE123456"
           )
 
         when(mockService.registerIndWithoutId(any())(any()))
-          .thenReturn(Future.successful(Right(apiResponse)))
+          .thenReturn(EitherT.rightT[Future, ApiError](apiResponse))
 
         val result = testController.registerIndividualWithoutId()(request)
 
@@ -312,7 +310,7 @@ class RegistrationControllerSpec extends SpecBase {
 
       "must return internal server error when the service returns NotFoundError" in {
         when(mockService.registerIndWithoutId(any())(any()))
-          .thenReturn(Future.successful(Left(NotFoundError)))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](NotFoundError))
 
         val result = testController.registerIndividualWithoutId()(request)
 
@@ -321,7 +319,7 @@ class RegistrationControllerSpec extends SpecBase {
 
       "must return internal server error when the service returns InternalServerError" in {
         when(mockService.registerIndWithoutId(any())(any()))
-          .thenReturn(Future.successful(Left(InternalServerError)))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](InternalServerError))
 
         val result = testController.registerIndividualWithoutId()(request)
 
@@ -330,9 +328,77 @@ class RegistrationControllerSpec extends SpecBase {
 
       "must return internal server error when the service returns JsonValidationError" in {
         when(mockService.registerIndWithoutId(any())(any()))
-          .thenReturn(Future.successful(Left(JsonValidationError)))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](JsonValidationError))
 
         val result = testController.registerIndividualWithoutId()(request)
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "registerOrganisationWithoutId" - {
+
+      val frontendRequestJsonStr: String =
+        """
+          |{
+          |  "organisationName": "ABC Limited",
+          |  "address": {
+          |    "addressLine1": "123 Test Street",
+          |    "addressLine2": "Flat 1",
+          |    "addressLine3": null,
+          |    "townOrCity": "France",
+          |    "postalCode": "SW1A 1AA",
+          |    "countryCode": "FR"
+          |  },
+          |  "contactDetails": {
+          |    "emailAddress": "john.doe@example.com",
+          |    "phoneNumber": "07123456789"
+          |  }
+          |}
+          |""".stripMargin
+
+      val frontendRequestJson: JsValue = Json.parse(frontendRequestJsonStr)
+
+      val request = fakeRequestWithJsonBody(frontendRequestJson)
+
+      "must return OK when the service returns a successful response" in {
+        val apiResponse =
+          RegWithoutIdFrontendResponse(
+            safeId = "SAFE123456"
+          )
+
+        when(mockService.registerOrgWithoutId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](apiResponse))
+
+        val result = testController.registerOrganisationWithoutId()(request)
+
+        status(result)        mustBe OK
+        contentAsJson(result) mustBe Json.toJson(apiResponse)
+      }
+
+      "must return internal server error when the service returns NotFoundError" in {
+        when(mockService.registerOrgWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](NotFoundError))
+
+        val result = testController.registerOrganisationWithoutId()(request)
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "must return internal server error when the service returns InternalServerError" in {
+        when(mockService.registerOrgWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](InternalServerError))
+
+        val result = testController.registerOrganisationWithoutId()(request)
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "must return internal server error when the service returns JsonValidationError" in {
+        when(mockService.registerOrgWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdFrontendResponse](JsonValidationError))
+
+        val result = testController.registerOrganisationWithoutId()(request)
 
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

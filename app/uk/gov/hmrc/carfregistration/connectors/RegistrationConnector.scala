@@ -23,9 +23,9 @@ import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdIndApiRequest, RegWithIdOrgApiRequest, RegWithoutIdIndApiRequest, RegWithoutIdIndApiRequestWrapper}
-import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndApiResponse, RegWithIdOrgApiResponse, RegWithoutIdIndApiResponse, RegWithoutIdIndApiResponseWrapper}
-import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, ErrorDetails, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdIndApiRequest, RegWithIdOrgApiRequest, RegWithoutIdApiRequest}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndApiResponse, RegWithIdOrgApiResponse, RegWithoutIdApiResponse, RegWithoutIdApiResponseDetails}
+import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -50,11 +50,6 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
   ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
     registerOrganisationWithID(request, url"$backendBaseUrl")
 
-  def individualWithoutId(
-      request: RegWithoutIdIndApiRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdIndApiResponse] =
-    registerIndividualWithoutId(request, url"${config.registerWithoutIdBaseUrl}")
-
   private def registerOrganisationWithID(request: RegWithIdOrgApiRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
   ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
@@ -67,7 +62,9 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
           response.status match {
             case OK                                                                               =>
               Try(response.json.as[RegWithIdOrgApiResponse]) match {
-                case Success(data)      => Right(data)
+                case Success(data)      =>
+                  logger.debug(s"Register organisation with ID Success! Response: $data")
+                  Right(data)
                 case Failure(exception) =>
                   logger.warn(
                     s"Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
@@ -101,7 +98,9 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
           response.status match {
             case OK                                                                               =>
               Try(response.json.as[RegWithIdIndApiResponse]) match {
-                case Success(data)      => Right(data)
+                case Success(data)      =>
+                  logger.debug(s"Register individual with ID Success! Response: $data")
+                  Right(data)
                 case Failure(exception) =>
                   logger.warn(
                     s"Error parsing response as RegWithIdIndApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
@@ -122,79 +121,33 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         }
     }
 
-  private def registerIndividualWithoutId(
-      request: RegWithoutIdIndApiRequest,
-      endpoint: URL
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdIndApiResponse] =
+  def registerWithoutId(
+      request: RegWithoutIdApiRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdApiResponse] =
     EitherT {
-
-      val wrappedRequest = RegWithoutIdIndApiRequestWrapper(registerWithoutIDRequest = request)
-
-      logger.debug(s"[RegistrationConnector] Calling individualWithoutId endpoint: ${endpoint.toURI}")
-
+      val endpoint: URL = url"${config.registerWithoutIdBaseUrl}"
+      logger.info(s"[RegistrationConnector] Calling registerWithoutId API with endpoint: ${endpoint.toURI}")
       http
         .post(endpoint)
-        .withBody(Json.toJson(wrappedRequest))
+        .withBody(Json.toJson(request))
         .execute[HttpResponse]
         .map { response =>
-
-          def extractSourceFaultDetail(resp: HttpResponse): Option[String] =
-            scala.util
-              .Try(resp.json)
-              .toOption
-              .flatMap(js => (js \ "errorDetail" \ "sourceFaultDetail" \ "detail").asOpt[Seq[String]])
-              .map(_.mkString(" | "))
-
           response.status match {
-
-            case OK =>
-              Try(response.json.as[RegWithoutIdIndApiResponseWrapper]) match {
-
-                case Success(wrapper) =>
-                  Right(wrapper.regWithoutIdIndApiResponse)
-
-                case Failure(_) =>
-                  Try(response.json.as[RegWithoutIdIndApiResponse]) match {
-
-                    case Success(plainResponse) =>
-                      Right(plainResponse)
-
-                    case Failure(exception) =>
-                      logger.error(
-                        s"[RegistrationConnector] Failed to parse response for individualWithoutId from ${endpoint.toURI}. " +
-                          s"Exception: ${exception.getMessage}"
-                      )
-                      Left(JsonValidationError)
-                  }
+            case OK                                                                               =>
+              Try(response.json.as[RegWithoutIdApiResponse]) match {
+                case Success(response)  =>
+                  logger.debug(s"Register without ID Success! Response: $response")
+                  Right(response)
+                case Failure(exception) =>
+                  logger.warn(
+                    s"Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                  )
+                  Left(JsonValidationError)
               }
-
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
-              val detail = extractSourceFaultDetail(response)
-
-              detail match {
-                case Some(d) =>
-                  logger.warn(
-                    s"[RegistrationConnector] Upstream error ${response.status} from ${endpoint.toURI}. " +
-                      s"sourceFaultDetail.detail=[$d]"
-                  )
-                case None    =>
-                  logger.warn(
-                    s"[RegistrationConnector] Upstream error ${response.status} from ${endpoint.toURI}"
-                  )
-              }
-
-              Left(InternalServerError)
-
-            case FORBIDDEN | METHOD_NOT_ALLOWED =>
-              logger.warn(
-                s"[RegistrationConnector] HTTP ${response.status} returned from ${endpoint.toURI}"
-              )
-              Left(InternalServerError)
-
-            case other =>
-              logger.error(
-                s"[RegistrationConnector] Unexpected response $other from ${endpoint.toURI}"
-              )
+              Left(errorParse(response, endpoint))
+            case _                                                                                =>
+              logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }

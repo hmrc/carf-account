@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.carfregistration.services
 
+import cats.data.EitherT
+import uk.gov.hmrc.carfregistration.config.Constants.carfRegimeName
 import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
 import uk.gov.hmrc.carfregistration.models.requests.*
-import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdIndFrontendResponse}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
 import uk.gov.hmrc.carfregistration.models.{ApiError, UuidGen}
 import uk.gov.hmrc.http.HeaderCarrier
+import play.api.Logging
 
 import java.time.Clock
 import javax.inject.Inject
@@ -28,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class RegistrationService @Inject() (connector: RegistrationConnector, clock: Clock, uuidGen: UuidGen)(implicit
     ec: ExecutionContext
-) {
+) extends Logging {
 
   def registerIndWithNino(
       frontendRequest: RegWithIdIndFrontendRequest
@@ -37,7 +40,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
       .individualWithId(
         RegWithIdIndApiRequest(
           registerWithIDRequest = RegWithIdIndApiRequestDetails(
-            requestCommon = RequestCommon("CARF", uuidGen, clock),
+            requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
             requestDetail = RequestDetailIndividual(frontendRequest)
           )
         )
@@ -55,7 +58,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
       .individualWithId(
         RegWithIdIndApiRequest(
           registerWithIDRequest = RegWithIdIndApiRequestDetails(
-            requestCommon = RequestCommon("CARF", uuidGen, clock),
+            requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
             requestDetail = RequestDetailIndividual(frontendRequest)
           )
         )
@@ -73,7 +76,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
       .organisationWithID(
         RegWithIdOrgApiRequest(
           registerWithIDRequest = RegWithIdOrgApiRequestDetails(
-            requestCommon = RequestCommon("CARF", uuidGen, clock),
+            requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
             requestDetail = RequestDetailOrgUserEntry(frontendRequest)
           )
         )
@@ -91,7 +94,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
       .organisationWithID(
         RegWithIdOrgApiRequest(
           registerWithIDRequest = RegWithIdOrgApiRequestDetails(
-            requestCommon = RequestCommon("CARF", uuidGen, clock),
+            requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
             requestDetail = RequestDetailOrgCtAutoMatch(frontendRequest)
           )
         )
@@ -104,24 +107,47 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
 
   def registerIndWithoutId(
       frontendRequest: RegWithoutIdIndFrontendRequest
-  )(implicit hc: HeaderCarrier): Future[Either[ApiError, RegWithoutIdIndFrontendResponse]] = {
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdFrontendResponse] = {
 
-    val apiRequest = RegWithoutIdIndApiRequest(
-      requestCommon = RequestCommon("CARF", uuidGen, clock),
-      requestDetail = RequestDetailIndividualWithoutId(
-        individual = IndividualDetailsWithoutId(
-          firstName = frontendRequest.firstName,
-          lastName = frontendRequest.lastName,
-          dateOfBirth = frontendRequest.dateOfBirth
-        ),
-        address = frontendRequest.address,
-        contactDetails = frontendRequest.contactDetails
+    val apiRequest = RegWithoutIdApiRequest(registerWithoutIDRequest =
+      RegWithoutIdApiRequestDetails(
+        requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
+        requestDetail = RequestDetailIndividualWithoutId(
+          individual = IndividualDetailsWithoutId(
+            firstName = frontendRequest.firstName,
+            lastName = frontendRequest.lastName,
+            dateOfBirth = frontendRequest.dateOfBirth
+          ),
+          address = frontendRequest.address,
+          contactDetails = frontendRequest.contactDetails
+        )
       )
     )
+    logger.info(s"[RegistrationService] Registering an individual without id")
+    connector
+      .registerWithoutId(apiRequest)
+      .map(apiResponse => RegWithoutIdFrontendResponse(apiResponse.registerWithoutIDResponse.responseDetail.SAFEID))
+  }
 
-    connector.individualWithoutId(apiRequest).value.map {
-      case Right(apiResponse) => Right(RegWithoutIdIndFrontendResponse(apiResponse.responseDetail.SAFEID))
-      case Left(error)        => Left(error)
-    }
+  def registerOrgWithoutId(
+      frontendRequest: RegWithoutIdOrgFrontendRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdFrontendResponse] = {
+
+    val apiRequest = RegWithoutIdApiRequest(registerWithoutIDRequest =
+      RegWithoutIdApiRequestDetails(
+        requestCommon = RequestCommon(carfRegimeName, uuidGen, clock),
+        requestDetail = RequestDetailOrganisationWithoutId(
+          organisation = OrganisationDetailsWithoutId(
+            organisationName = frontendRequest.organisationName
+          ),
+          address = frontendRequest.address,
+          contactDetails = frontendRequest.contactDetails
+        )
+      )
+    )
+    logger.info(s"[RegistrationService] Registering an organisation without id")
+    connector
+      .registerWithoutId(apiRequest)
+      .map(apiResponse => RegWithoutIdFrontendResponse(apiResponse.registerWithoutIDResponse.responseDetail.SAFEID))
   }
 }

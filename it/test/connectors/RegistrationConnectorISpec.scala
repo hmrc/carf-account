@@ -195,39 +195,60 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     )
   )
 
-  val testWithoutIdRequest = RegWithoutIdIndApiRequest(
-    requestCommon = RequestCommon(
-      acknowledgementReference = "test-Ref",
-      receiptDate = "test-Date",
-      regime = "CARF"
-    ),
-    requestDetail = RequestDetailIndividualWithoutId(
-      individual = IndividualDetailsWithoutId(
-        firstName = "John",
-        lastName = "Doe",
-        dateOfBirth = "1990-01-01"
+  val testIndWithoutIdRequest = RegWithoutIdApiRequest(registerWithoutIDRequest =
+    RegWithoutIdApiRequestDetails(
+      requestCommon = RequestCommon(
+        acknowledgementReference = "test-Ref",
+        receiptDate = "test-Date",
+        regime = "CARF"
       ),
-      address = testAddressFrontend,
-      contactDetails = testContactDetails
+      requestDetail = RequestDetailIndividualWithoutId(
+        individual = IndividualDetailsWithoutId(
+          firstName = "John",
+          lastName = "Doe",
+          dateOfBirth = "1990-01-01"
+        ),
+        address = testAddressFrontend,
+        contactDetails = testContactDetails
+      )
+    )
+  )
+
+  val testOrgWithoutIdRequest = RegWithoutIdApiRequest(registerWithoutIDRequest =
+    RegWithoutIdApiRequestDetails(
+      requestCommon = RequestCommon(
+        acknowledgementReference = "test-Ref",
+        receiptDate = "test-Date",
+        regime = "CARF"
+      ),
+      requestDetail = RequestDetailOrganisationWithoutId(
+        organisation = OrganisationDetailsWithoutId(
+          organisationName = "ABC LTD"
+        ),
+        address = testAddressFrontend,
+        contactDetails = testContactDetails
+      )
     )
   )
 
   val testWithoutIdResponseJson: String =
     """
       |{
-      |  "responseCommon": {
-      |    "status": "OK"
-      |  },
-      |  "responseDetail": {
-      |    "SAFEID": "SAFE123456"
+      |  "registerWithoutIDResponse": {
+      |     "responseCommon": {
+      |       "status": "OK"
+      |     },
+      |     "responseDetail": {
+      |       "SAFEID": "SAFE123456"
+      |     }
       |  }
       |}
       |""".stripMargin
 
   val testWithoutIdResponseBody =
-    RegWithoutIdIndApiResponse(
+    RegWithoutIdApiResponseDetails(
       responseCommon = ResponseCommon(status = "OK"),
-      responseDetail = RegWithoutIdIndApiResponseDetail(
+      responseDetail = RegWithoutIdApiResponseDetail(
         SAFEID = "SAFE123456"
       )
     )
@@ -325,9 +346,9 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
     }
   }
 
-  "individualWithoutId" should {
+  "registerWithoutId" should {
 
-    val expectedWithoutIdRequestJson: String =
+    val expectedIndWithoutIdRequestJson: String =
       """
       {
         "registerWithoutIDRequest": {
@@ -360,10 +381,41 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
       }
       """.stripMargin
 
-    "successfully retrieve the api response" in {
+    val expectedOrgWithoutIdRequestJson: String =
+      """
+          {
+            "registerWithoutIDRequest": {
+              "requestCommon": {
+                "acknowledgementReference": "test-Ref",
+                "receiptDate": "test-Date",
+                "regime": "CARF"
+              },
+              "requestDetail": {
+                "organisation": {
+                  "organisationName": "ABC LTD"
+                },
+                "address": {
+                  "addressLine1": "123 Test Street",
+                  "addressLine2": "Flat 1",
+                  "townOrCity": "France",
+                  "postalCode": "75008",
+                  "countryCode": "FR"
+                },
+                "contactDetails": {
+                  "emailAddress": "john.doe@example.com",
+                  "phoneNumber": "07123456789"
+                },
+                "isAnAgent": false,
+                "isAGroup": false
+              }
+            }
+          }
+          """.stripMargin
+
+    "successfully retrieve the api response for ind without id request" in {
       stubFor(
         post(urlPathMatching("/dac6/dprs0101/v1"))
-          .withRequestBody(equalToJson(expectedWithoutIdRequestJson, true, true))
+          .withRequestBody(equalToJson(expectedIndWithoutIdRequestJson, true, true))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -371,9 +423,30 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
           )
       )
 
-      val result = connector.individualWithoutId(testWithoutIdRequest).value.futureValue
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
       result mustBe Right(
-        RegWithoutIdIndApiResponse(ResponseCommon("OK"), RegWithoutIdIndApiResponseDetail("SAFE123456"))
+        RegWithoutIdApiResponse(registerWithoutIDResponse =
+          RegWithoutIdApiResponseDetails(ResponseCommon("OK"), RegWithoutIdApiResponseDetail("SAFE123456"))
+        )
+      )
+    }
+
+    "successfully retrieve the api response for org without id request" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .withRequestBody(equalToJson(expectedOrgWithoutIdRequestJson, true, true))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(testWithoutIdResponseJson)
+          )
+      )
+
+      val result = connector.registerWithoutId(testOrgWithoutIdRequest).value.futureValue
+      result mustBe Right(
+        RegWithoutIdApiResponse(registerWithoutIDResponse =
+          RegWithoutIdApiResponseDetails(ResponseCommon("OK"), RegWithoutIdApiResponseDetail("SAFE123456"))
+        )
       )
     }
 
@@ -383,28 +456,96 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
           .willReturn(aResponse().withStatus(OK).withBody("invalid-json"))
       )
 
-      val result = connector.individualWithoutId(testWithoutIdRequest).value.futureValue
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
       result mustBe Left(JsonValidationError)
     }
 
-    "return InternalServerError if 422 returned" in {
+    "return InternalServerError if 400 returned with error detail body" in {
       stubFor(
         post(urlPathMatching("/dac6/dprs0101/v1"))
-          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY))
+          .willReturn(aResponse()
+            .withStatus(BAD_REQUEST)
+            .withBody(testApiErrorDetailResponseJson)
+          )
       )
 
-      val result = connector.individualWithoutId(testWithoutIdRequest).value.futureValue
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return InternalServerError if 422 returned with error detail body" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .willReturn(aResponse()
+            .withStatus(UNPROCESSABLE_ENTITY)
+            .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
     "return InternalServerError for 500 response" in {
       stubFor(
         post(urlPathMatching("/dac6/dprs0101/v1"))
-          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR))
+          .willReturn(aResponse()
+            .withStatus(INTERNAL_SERVER_ERROR)
+            .withBody(testApiErrorDetailResponseJson)
+          )
       )
 
-      val result = connector.individualWithoutId(testWithoutIdRequest).value.futureValue
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
       result mustBe Left(InternalServerError)
+    }
+
+    "return InternalServerError for 503 response" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .willReturn(aResponse()
+            .withStatus(SERVICE_UNAVAILABLE)
+            .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return InternalServerError for 403 response" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .willReturn(aResponse()
+            .withStatus(FORBIDDEN)
+          )
+      )
+
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return InternalServerError for 405 response" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .willReturn(aResponse()
+            .withStatus(METHOD_NOT_ALLOWED)
+          )
+      )
+
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return JsonValidationError if ErrorDetail cannot be parsed in response" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0101/v1"))
+          .willReturn(aResponse()
+            .withStatus(INTERNAL_SERVER_ERROR)
+          )
+      )
+
+      val result = connector.registerWithoutId(testIndWithoutIdRequest).value.futureValue
+      result mustBe Left(JsonValidationError)
     }
   }
 

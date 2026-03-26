@@ -20,4 +20,6 @@ object Constants {
 
   val ukTimeZoneStringId = "Europe/London"
 
+  val carfRegimeName: String = "CARF"
+
 }

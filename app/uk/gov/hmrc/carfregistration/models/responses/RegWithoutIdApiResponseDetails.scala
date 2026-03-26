@@ -18,24 +18,24 @@ package uk.gov.hmrc.carfregistration.models.responses
 
 import play.api.libs.json.{Json, OFormat}
 
-case class RegWithoutIdIndApiResponseDetail(
+case class RegWithoutIdApiResponseDetail(
     SAFEID: String
 )
-object RegWithoutIdIndApiResponseDetail {
-  implicit val format: OFormat[RegWithoutIdIndApiResponseDetail] =
-    Json.format[RegWithoutIdIndApiResponseDetail]
+object RegWithoutIdApiResponseDetail {
+  implicit val format: OFormat[RegWithoutIdApiResponseDetail] =
+    Json.format[RegWithoutIdApiResponseDetail]
 }
 
-case class RegWithoutIdIndApiResponse(responseCommon: ResponseCommon, responseDetail: RegWithoutIdIndApiResponseDetail)
+case class RegWithoutIdApiResponseDetails(responseCommon: ResponseCommon, responseDetail: RegWithoutIdApiResponseDetail)
 
-object RegWithoutIdIndApiResponse {
-  implicit val format: OFormat[RegWithoutIdIndApiResponse] = Json.format[RegWithoutIdIndApiResponse]
+object RegWithoutIdApiResponseDetails {
+  implicit val format: OFormat[RegWithoutIdApiResponseDetails] = Json.format[RegWithoutIdApiResponseDetails]
 }
 
-case class RegWithoutIdIndApiResponseWrapper(
-    regWithoutIdIndApiResponse: RegWithoutIdIndApiResponse
+case class RegWithoutIdApiResponse(
+    registerWithoutIDResponse: RegWithoutIdApiResponseDetails
 )
 
-object RegWithoutIdIndApiResponseWrapper {
-  implicit val format: OFormat[RegWithoutIdIndApiResponseWrapper] = Json.format[RegWithoutIdIndApiResponseWrapper]
+object RegWithoutIdApiResponse {
+  implicit val format: OFormat[RegWithoutIdApiResponse] = Json.format[RegWithoutIdApiResponse]
 }

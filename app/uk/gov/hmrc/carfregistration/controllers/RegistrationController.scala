@@ -21,8 +21,8 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
-import uk.gov.hmrc.carfregistration.models.{JsonValidationError, MissingFieldsError, NotFoundError}
-import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdIndFrontendRequest}
+import uk.gov.hmrc.carfregistration.models.requests.*
+import uk.gov.hmrc.carfregistration.models.{ApiError, NotFoundError}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -87,24 +87,25 @@ class RegistrationController @Inject() (
   }
 
   def registerIndividualWithoutId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-
-    lazy val unexpectedError = {
-      logger.error("registerIndividualWithoutId - unexpected error")
-      InternalServerError("Unexpected error")
-    }
-
     withJsonBody[RegWithoutIdIndFrontendRequest] { req =>
       logger.debug(s"registerIndividualWithoutId request = \n-> $req")
-      service.registerIndWithoutId(req).map {
-        case Right(resp) => Ok(Json.toJson(resp))
+      service.registerIndWithoutId(req).value.map {
+        case Right(resp)           => Ok(Json.toJson(resp))
+        case Left(error: ApiError) =>
+          logger.warn(s"[registerIndividualWithoutId] Error registering individual without id. Error: $error")
+          InternalServerError("Unexpected error")
+      }
+    }
+  }
 
-        case Left(NotFoundError) =>
-          logger.warn("registerIndividualWithoutId - NotFoundError")
-          unexpectedError
-
-        case Left(JsonValidationError) => unexpectedError
-        case Left(MissingFieldsError)  => unexpectedError
-        case Left(_)                   => unexpectedError
+  def registerOrganisationWithoutId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
+    withJsonBody[RegWithoutIdOrgFrontendRequest] { req =>
+      logger.debug(s"registerOrganisationWithoutId request = \n-> $req")
+      service.registerOrgWithoutId(req).value.map {
+        case Right(resp)           => Ok(Json.toJson(resp))
+        case Left(error: ApiError) =>
+          logger.warn(s"[registerOrganisationWithoutId] Error registering organisation without id. Error: $error")
+          InternalServerError("Unexpected error")
       }
     }
   }

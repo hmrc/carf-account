@@ -8,3 +8,4 @@ POST        /organisation/utr/ct-auto-match        uk.gov.hmrc.carfregistration.
 POST        /subscription/subscribe                uk.gov.hmrc.carfregistration.controllers.SubscriptionController.createSubscription()
 
 POST        /individual-without-id                 uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithoutId()
+POST        /organisation-without-id               uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerOrganisationWithoutId()
