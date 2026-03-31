@@ -19,12 +19,13 @@ package uk.gov.hmrc.carfregistration.connectors
 import cats.data.EitherT
 import com.google.inject.Inject
 import play.api.Logging
-import play.api.http.Status.{CREATED, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.models.requests.SubscriptionRequest
 import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError}
+import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -57,9 +58,9 @@ class SubscriptionConnector @Inject() (
         .execute[HttpResponse]
         .map { httpResponse =>
           httpResponse.status match {
-            case status if status == CREATED =>
+            case OK                                                        =>
               Right(httpResponse)
-            case UNPROCESSABLE_ENTITY        =>
+            case UNPROCESSABLE_ENTITY                                      =>
               logDownStreamError(httpResponse.status, httpResponse.body)
               isAlreadyRegistered(httpResponse.body) match {
                 case Some(json) =>
@@ -68,7 +69,9 @@ class SubscriptionConnector @Inject() (
                 case None       =>
                   Right(httpResponse)
               }
-            case status                      =>
+            case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
+            case status                                                    =>
               logger.warn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
               logDownStreamError(status, httpResponse.body)
               Left(InternalServerError)

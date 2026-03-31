@@ -58,14 +58,30 @@ class SubscriptionConnectorISpec
       |  }
     |}""".stripMargin
 
+  val testApiErrorDetailResponseJson: String =
+    """{
+      |  "errorDetail": {
+      |    "errorCode": "400",
+      |    "errorMessage": "Test Error Message",
+      |    "source": "Test",
+      |    "sourceFaultDetail": {
+      |      "detail": [
+      |        "Test Error Detail"
+      |      ]
+      |    },
+      |    "timestamp": "2020-09-25T21:54:12.015Z",
+      |    "correlationId": "1ae81b45-41b4-4642-ae1c-db1126900001"
+      |  }
+      |}""".stripMargin
+
   "sendSubscriptionInformation" should {
 
-    "successfully retrieve the API response for a 201 OK" in {
+    "successfully retrieve the API response for a 200 OK" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(
             aResponse()
-              .withStatus(201)
+              .withStatus(200)
               .withBody(testSubscriptionResponseJson)
           )
       )
@@ -78,7 +94,7 @@ class SubscriptionConnectorISpec
     "return Right with UNPROCESSABLE_ENTITY and the json body with already_registered when error code is 007" in {
       val body = """{"errorDetail":{"errorCode":"007","errorMessage":"Already registered"}}"""
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(
             aResponse()
               .withStatus(UNPROCESSABLE_ENTITY)
@@ -97,7 +113,7 @@ class SubscriptionConnectorISpec
     "return Right with UNPROCESSABLE_ENTITY and original body when error code is not 007" in {
       val body = """{"errorDetail":{"errorCode":"015","errorMessage":"Invalid ID type"}}"""
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(
             aResponse()
               .withStatus(UNPROCESSABLE_ENTITY)
@@ -115,7 +131,7 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if NOT_FOUND status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(aResponse().withStatus(NOT_FOUND))
       )
 
@@ -125,8 +141,8 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
-          .willReturn(aResponse().withStatus(BAD_REQUEST))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
+          .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
       )
 
       val result = connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
@@ -135,8 +151,8 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
-          .willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
+          .willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
       )
 
       val result = connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
@@ -145,7 +161,7 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(aResponse().withStatus(FORBIDDEN))
       )
 
@@ -155,8 +171,8 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if 500 status response is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
-          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
+          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
       )
 
       val result = connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
@@ -165,7 +181,7 @@ class SubscriptionConnectorISpec
 
     "return Left InternalServerError if unexpected status code is returned from backend" in {
       stubFor(
-        post(urlPathMatching("/dac6/dct102c/v1"))
+        post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
           .willReturn(aResponse().withStatus(502))
       )
 
