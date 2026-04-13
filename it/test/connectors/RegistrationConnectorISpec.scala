@@ -374,8 +374,8 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
               "emailAddress": "john.doe@example.com",
               "phoneNumber": "07123456789"
             },
-            "isAnAgent": false,
-            "isAGroup": false
+            "IsAnAgent": false,
+            "IsAGroup": false
           }
         }
       }
@@ -405,8 +405,8 @@ class RegistrationConnectorISpec extends ApplicationWithWiremock with ScalaFutur
                   "emailAddress": "john.doe@example.com",
                   "phoneNumber": "07123456789"
                 },
-                "isAnAgent": false,
-                "isAGroup": false
+                "IsAnAgent": false,
+                "IsAGroup": false
               }
             }
           }

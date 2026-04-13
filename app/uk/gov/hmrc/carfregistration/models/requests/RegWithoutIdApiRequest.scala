@@ -35,8 +35,8 @@ object RegWithoutIdApiRequestDetails {
 sealed trait RegWithoutIdRequestDetail {
   val address: AddressDetailsFrontend
   val contactDetails: ContactDetailsFrontend
-  val isAnAgent: Boolean
-  val isAGroup: Boolean
+  val IsAnAgent: Boolean
+  val IsAGroup: Boolean
 }
 
 object RegWithoutIdRequestDetail {
@@ -47,8 +47,8 @@ case class RequestDetailIndividualWithoutId(
     individual: IndividualDetailsWithoutId,
     address: AddressDetailsFrontend,
     contactDetails: ContactDetailsFrontend,
-    isAnAgent: Boolean = false,
-    isAGroup: Boolean = false
+    IsAnAgent: Boolean = false,
+    IsAGroup: Boolean = false
 ) extends RegWithoutIdRequestDetail
 
 object RequestDetailIndividualWithoutId {
@@ -59,8 +59,8 @@ case class RequestDetailOrganisationWithoutId(
     organisation: OrganisationDetailsWithoutId,
     address: AddressDetailsFrontend,
     contactDetails: ContactDetailsFrontend,
-    isAnAgent: Boolean = false,
-    isAGroup: Boolean = false
+    IsAnAgent: Boolean = false,
+    IsAGroup: Boolean = false
 ) extends RegWithoutIdRequestDetail
 
 object RequestDetailOrganisationWithoutId {
