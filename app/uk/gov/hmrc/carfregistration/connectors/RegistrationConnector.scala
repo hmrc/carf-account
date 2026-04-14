@@ -58,6 +58,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
       http
         .post(endpoint)
         .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "register-with-id"): _*)
         .execute[HttpResponse]
         .map { response =>
           response.status match {
@@ -94,6 +95,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
       http
         .post(endpoint)
         .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "register-with-id"): _*)
         .execute[HttpResponse]
         .map { response =>
           response.status match {
@@ -131,6 +133,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
       http
         .post(endpoint)
         .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "register-without-id"): _*)
         .execute[HttpResponse]
         .map { response =>
           response.status match {

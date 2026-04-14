@@ -26,6 +26,12 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val appName: String = config.get[String]("appName")
 
+  val bearerToken: String => String =
+    (serviceName: String) => config.get[String](s"microservice.services.$serviceName.bearer-token")
+
+  val environment: String => String =
+    (serviceName: String) => config.get[String](s"microservice.services.$serviceName.environment")
+
   private val registerWithIdHost: String = servicesConfig.baseUrl("register-with-id")
   val registerWithIdBaseUrl: String      =
     s"$registerWithIdHost${config.get[String]("microservice.services.register-with-id.uri")}"
@@ -36,5 +42,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     s"$registerWithoutIdHost${config.get[String]("microservice.services.register-without-id.uri")}"
 
   private val createSubscriptionHost: String = servicesConfig.baseUrl("create-subscription")
-  val createSubscriptionBaseUrl: String      =
+
+  val createSubscriptionBaseUrl: String =
     s"$createSubscriptionHost${config.get[String]("microservice.services.create-subscription.uri")}"
