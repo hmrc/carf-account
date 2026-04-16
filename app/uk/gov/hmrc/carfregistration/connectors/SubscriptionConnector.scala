@@ -55,6 +55,7 @@ class SubscriptionConnector @Inject() (
       http
         .post(endpoint)
         .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "create-subscription"): _*)
         .execute[HttpResponse]
         .map { httpResponse =>
           httpResponse.status match {

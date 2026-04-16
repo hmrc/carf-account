@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor, urlPathMatching}
-import itutil.ApplicationWithWiremock
+import itutil.{ApplicationWithWiremock, ConnectorSpecHelper}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.must.Matchers.mustBe
@@ -32,7 +32,8 @@ class SubscriptionConnectorISpec
     extends ApplicationWithWiremock
     with ScalaFutures
     with IntegrationPatience
-    with Matchers {
+    with Matchers
+    with ConnectorSpecHelper {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -77,8 +78,13 @@ class SubscriptionConnectorISpec
   "sendSubscriptionInformation" should {
 
     "successfully retrieve the API response for a 200 OK" in {
-      stubFor(
+
+      val mappingBuilder = addMatchHeaders(
         post(urlPathMatching("/dac6/createsubscriptiondata/carf/v1"))
+      )
+
+      stubFor(
+        mappingBuilder
           .willReturn(
             aResponse()
               .withStatus(200)
@@ -88,6 +94,7 @@ class SubscriptionConnectorISpec
 
       val result: Either[ApiError, HttpResponse] =
         connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
+
       result.map(_.body) mustBe Right(testSubscriptionResponseJson)
     }
 
