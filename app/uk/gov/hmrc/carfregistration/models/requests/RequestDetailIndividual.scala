@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.carfregistration.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OWrites}
 
 case class RequestDetailIndividual(
     requiresNameMatch: Boolean,
@@ -27,7 +27,7 @@ case class RequestDetailIndividual(
 )
 
 object RequestDetailIndividual {
-  implicit val format: OFormat[RequestDetailIndividual] = Json.format[RequestDetailIndividual]
+  implicit val writes: OWrites[RequestDetailIndividual] = Json.writes[RequestDetailIndividual]
 
   def apply(frontendRequest: RegWithIdIndFrontendRequest): RequestDetailIndividual =
     val indDetails: IndividualDetails = frontendRequest match {

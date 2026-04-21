@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.carfregistration.models.requests
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OWrites, Writes}
 
 case class OrganisationDetails(
     organisationName: String,
@@ -24,7 +24,7 @@ case class OrganisationDetails(
 )
 
 object OrganisationDetails {
-  implicit val format: OFormat[OrganisationDetails] = Json.format[OrganisationDetails]
+  implicit val writes: OWrites[OrganisationDetails] = Json.writes[OrganisationDetails]
 }
 
 sealed trait IndividualDetails {
@@ -33,17 +33,20 @@ sealed trait IndividualDetails {
 }
 
 object IndividualDetails {
-  implicit val format: OFormat[IndividualDetails] = Json.format[IndividualDetails]
+  implicit val writes: Writes[IndividualDetails] = Writes {
+    case n: IndividualDetailsWithNino => Json.toJson(n)
+    case u: IndividualDetailsWithUtr  => Json.toJson(u)
+  }
 }
 
 case class IndividualDetailsWithNino(dateOfBirth: String, firstName: String, lastName: String) extends IndividualDetails
 
 object IndividualDetailsWithNino {
-  implicit val format: OFormat[IndividualDetailsWithNino] = Json.format[IndividualDetailsWithNino]
+  implicit val writes: OWrites[IndividualDetailsWithNino] = Json.writes[IndividualDetailsWithNino]
 }
 
 case class IndividualDetailsWithUtr(firstName: String, lastName: String) extends IndividualDetails
 
 object IndividualDetailsWithUtr {
-  implicit val format: OFormat[IndividualDetailsWithUtr] = Json.format[IndividualDetailsWithUtr]
+  implicit val writes: OWrites[IndividualDetailsWithUtr] = Json.writes[IndividualDetailsWithUtr]
 }
