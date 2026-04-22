@@ -24,7 +24,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdIndApiRequest, RegWithIdOrgApiRequest, RegWithoutIdApiRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdIndApiResponse, RegWithIdOrgApiResponse, RegWithoutIdApiResponse}
+import uk.gov.hmrc.carfregistration.models.responses.{RegWithIdApiResponse, RegWithoutIdApiResponse}
 import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
@@ -43,17 +43,17 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
 
   def individualWithId(
       request: RegWithIdIndApiRequest
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdIndApiResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdApiResponse] =
     registerIndividualWithId(request, url"$backendBaseUrl")
 
   def organisationWithID(request: RegWithIdOrgApiRequest)(implicit
       hc: HeaderCarrier
-  ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
+  ): EitherT[Future, ApiError, RegWithIdApiResponse] =
     registerOrganisationWithID(request, url"$backendBaseUrl")
 
   private def registerOrganisationWithID(request: RegWithIdOrgApiRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
-  ): EitherT[Future, ApiError, RegWithIdOrgApiResponse] =
+  ): EitherT[Future, ApiError, RegWithIdApiResponse] =
     EitherT {
       http
         .post(endpoint)
@@ -63,7 +63,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         .map { response =>
           response.status match {
             case OK                                                                               =>
-              Try(response.json.as[RegWithIdOrgApiResponse]) match {
+              Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
                   logger.debug(s"Register organisation with ID Success! Response: $data")
                   Right(data)
@@ -90,7 +90,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
   private def registerIndividualWithId(
       request: RegWithIdIndApiRequest,
       endpoint: URL
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdIndApiResponse] =
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithIdApiResponse] =
     EitherT {
       http
         .post(endpoint)
@@ -100,13 +100,13 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
         .map { response =>
           response.status match {
             case OK                                                                               =>
-              Try(response.json.as[RegWithIdIndApiResponse]) match {
+              Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
                   logger.debug(s"Register individual with ID Success! Response: $data")
                   Right(data)
                 case Failure(exception) =>
                   logger.warn(
-                    s"Error parsing response as RegWithIdIndApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                    s"Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
               }

@@ -55,13 +55,16 @@ class RegistrationServiceSpec extends SpecBase {
       lastName = "Cranberry"
     )
 
-  val testAPIResponseIndividual = RegWithIdIndApiResponse(
-    responseCommon = ResponseCommon(status = "200"),
-    responseDetail = ResponseDetail(
-      SAFEID = "test-SAFEID",
-      address = testAddressResponse,
-      individual = Some(IndividualResponse(firstName = "Colin", lastName = "Cranberry", middleName = Some("Pikachu"))),
-      organisation = None
+  val testAPIResponseIndividual = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "200"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID",
+        address = testAddressResponse,
+        individual =
+          Some(IndividualResponse(firstName = "Colin", lastName = "Cranberry", middleName = Some("Pikachu"))),
+        organisation = None
+      )
     )
   )
 
@@ -90,13 +93,15 @@ class RegistrationServiceSpec extends SpecBase {
     organisationType = "0001"
   )
 
-  val testApiResponseUserEntryOrg = RegWithIdOrgApiResponse(
-    responseCommon = ResponseCommon(status = "OK"),
-    responseDetail = ResponseDetail(
-      SAFEID = "test-SAFEID-org",
-      address = testAddressResponse,
-      individual = None,
-      organisation = Some(OrganisationResponse(organisationName = "Testing Ltd", code = Some("0001")))
+  val testApiResponseUserEntryOrg = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "OK"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID-org",
+        address = testAddressResponse,
+        individual = None,
+        organisation = Some(OrganisationResponse(organisationName = "Testing Ltd", code = Some("0001")))
+      )
     )
   )
 
@@ -113,13 +118,15 @@ class RegistrationServiceSpec extends SpecBase {
     IDType = "UTR"
   )
 
-  val testApiResponseAutoMatchOrg = RegWithIdOrgApiResponse(
-    responseCommon = ResponseCommon(status = "OK"),
-    responseDetail = ResponseDetail(
-      SAFEID = "test-SAFEID-automatch",
-      address = testAddressResponse,
-      individual = None,
-      organisation = Some(OrganisationResponse(organisationName = "AutoMatch Ltd", code = Some("0002")))
+  val testApiResponseAutoMatchOrg = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "OK"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID-automatch",
+        address = testAddressResponse,
+        individual = None,
+        organisation = Some(OrganisationResponse(organisationName = "AutoMatch Ltd", code = Some("0002")))
+      )
     )
   )
 
@@ -186,19 +193,19 @@ class RegistrationServiceSpec extends SpecBase {
       }
       "must return not found when the connector returns a not found" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](NotFoundError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
         val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
         result mustBe Left(NotFoundError)
       }
       "must return an internal server error when the connector encounters an unexpected error" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](InternalServerError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
         val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
         result mustBe Left(InternalServerError)
       }
       "must return an json validation error when the connector cannot parse the response" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](JsonValidationError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
         val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
         result mustBe Left(JsonValidationError)
       }
@@ -213,19 +220,19 @@ class RegistrationServiceSpec extends SpecBase {
       }
       "must return not found when the connector returns a not found" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](NotFoundError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
         val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
         result mustBe Left(NotFoundError)
       }
       "must return an internal server error when the connector encounters an unexpected error" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](InternalServerError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
         val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
         result mustBe Left(InternalServerError)
       }
       "must return an json validation error when the connector cannot parse the response" in {
         when(mockConnector.individualWithId(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdIndApiResponse](JsonValidationError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
         val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
         result mustBe Left(JsonValidationError)
       }
@@ -244,7 +251,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return not found when the connector returns a not found error" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](NotFoundError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
 
         val result =
           testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
@@ -254,7 +261,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return an internal server error when the connector returns an unexpected error" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](InternalServerError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
 
         val result =
           testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
@@ -264,7 +271,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return a json validation error when the connector cannot parse the response" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](JsonValidationError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
 
         val result =
           testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
@@ -286,7 +293,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return not found when the connector returns a not found error" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](NotFoundError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
 
         val result =
           testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
@@ -296,7 +303,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return an internal server error when the connector returns an unexpected error" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](InternalServerError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
 
         val result =
           testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
@@ -306,7 +313,7 @@ class RegistrationServiceSpec extends SpecBase {
 
       "must return a json validation error when the connector cannot parse the response" in {
         when(mockConnector.organisationWithID(any())(any()))
-          .thenReturn(EitherT.leftT[Future, RegWithIdOrgApiResponse](JsonValidationError))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
 
         val result =
           testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue

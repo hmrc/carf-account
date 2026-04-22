@@ -25,13 +25,15 @@ class RegWithIdIndFrontendResponseSpec extends SpecBase {
   "RegWithIdIndFrontendResponse apply method" - {
     "must return a RegWithIdIndFrontendResponse model when given a RegWithIdIndApiResponse" - {
       "when the data is populated" in {
-        val testResponse: RegWithIdIndApiResponse = RegWithIdIndApiResponse(
-          responseCommon = ResponseCommon(status = "OK"),
-          responseDetail = ResponseDetail(
-            SAFEID = "testSafe",
-            address = testAddress,
-            individual = Some(IndividualResponse("Jeremy", "Usbourne", None)),
-            organisation = None
+        val testResponse: RegWithIdApiResponse = RegWithIdApiResponse(registerWithIDResponse =
+          RegWithIdApiResponseDetails(
+            responseCommon = ResponseCommon(status = "OK"),
+            responseDetail = ResponseDetail(
+              SAFEID = "testSafe",
+              address = testAddress,
+              individual = Some(IndividualResponse("Jeremy", "Usbourne", None)),
+              organisation = None
+            )
           )
         )
 
@@ -45,24 +47,26 @@ class RegWithIdIndFrontendResponseSpec extends SpecBase {
 
         val result = RegWithIdIndFrontendResponse.apply(testResponse)
 
-        result mustEqual Right(expectedResult)
+        result mustBe Right(expectedResult)
       }
     }
     "must return a MissingFieldsError model when given a RegWithIdIndApiResponse" - {
       "with IndividualResponse missing" in {
-        val testResponse: RegWithIdIndApiResponse = RegWithIdIndApiResponse(
-          responseCommon = ResponseCommon(status = "OK"),
-          responseDetail = ResponseDetail(
-            SAFEID = "testSafe",
-            address = testAddress,
-            individual = None,
-            organisation = None
+        val testResponse: RegWithIdApiResponse = RegWithIdApiResponse(registerWithIDResponse =
+          RegWithIdApiResponseDetails(
+            responseCommon = ResponseCommon(status = "OK"),
+            responseDetail = ResponseDetail(
+              SAFEID = "testSafe",
+              address = testAddress,
+              individual = None,
+              organisation = None
+            )
           )
         )
 
         val result = RegWithIdIndFrontendResponse.apply(testResponse)
 
-        result mustEqual Left(MissingFieldsError)
+        result mustBe Left(MissingFieldsError)
       }
     }
   }

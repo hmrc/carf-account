@@ -31,16 +31,17 @@ object RegWithIdIndFrontendResponse {
   implicit val format: OFormat[RegWithIdIndFrontendResponse] =
     Json.format[RegWithIdIndFrontendResponse]
 
-  def apply(apiResponse: RegWithIdIndApiResponse): Either[ApiError, RegWithIdIndFrontendResponse] =
-    apiResponse.responseDetail.individual match {
+  def apply(apiResponse: RegWithIdApiResponse): Either[ApiError, RegWithIdIndFrontendResponse] =
+    val apiResponseDetail = apiResponse.registerWithIDResponse.responseDetail
+    apiResponseDetail.individual match {
       case Some(individualResponse: IndividualResponse) =>
         Right(
           RegWithIdIndFrontendResponse(
-            safeId = apiResponse.responseDetail.SAFEID,
+            safeId = apiResponseDetail.SAFEID,
             firstName = individualResponse.firstName,
             lastName = individualResponse.lastName,
             middleName = individualResponse.middleName,
-            address = apiResponse.responseDetail.address
+            address = apiResponseDetail.address
           )
         )
       case None                                         => Left(MissingFieldsError)

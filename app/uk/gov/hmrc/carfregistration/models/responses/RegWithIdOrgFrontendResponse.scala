@@ -31,22 +31,23 @@ object RegWithIdOrgFrontendResponse {
     Json.format[RegWithIdOrgFrontendResponse]
 
   def apply(
-      apiResponse: RegWithIdOrgApiResponse
+      apiResponse: RegWithIdApiResponse
   ): Either[ApiError, RegWithIdOrgFrontendResponse] =
-    apiResponse.responseDetail.organisation match {
+    val apiResponseDetail = apiResponse.registerWithIDResponse.responseDetail
+    apiResponseDetail.organisation match {
       case Some(organisationResponse: OrganisationResponse) =>
         Right(
           RegWithIdOrgFrontendResponse(
-            safeId = apiResponse.responseDetail.SAFEID,
+            safeId = apiResponseDetail.SAFEID,
             code = organisationResponse.code,
             organisationName = organisationResponse.organisationName,
             address = AddressResponse(
-              addressLine1 = apiResponse.responseDetail.address.addressLine1,
-              addressLine2 = apiResponse.responseDetail.address.addressLine2,
-              addressLine3 = apiResponse.responseDetail.address.addressLine3,
-              addressLine4 = apiResponse.responseDetail.address.addressLine4,
-              postalCode = apiResponse.responseDetail.address.postalCode,
-              countryCode = apiResponse.responseDetail.address.countryCode
+              addressLine1 = apiResponseDetail.address.addressLine1,
+              addressLine2 = apiResponseDetail.address.addressLine2,
+              addressLine3 = apiResponseDetail.address.addressLine3,
+              addressLine4 = apiResponseDetail.address.addressLine4,
+              postalCode = apiResponseDetail.address.postalCode,
+              countryCode = apiResponseDetail.address.countryCode
             )
           )
         )

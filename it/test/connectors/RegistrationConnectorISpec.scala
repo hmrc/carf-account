@@ -39,17 +39,20 @@ class RegistrationConnectorISpec
 
   val connector: RegistrationConnector = app.injector.instanceOf[RegistrationConnector]
 
-  val testApiResponseBody = RegWithIdIndApiResponse(
-    responseCommon = ResponseCommon(status = "200"),
-    responseDetail = ResponseDetail(
-      SAFEID = "Test-SafeId",
-      address = testAddressResponse,
-      individual = Some(IndividualResponse(firstName = "Katie", lastName = "Long", middleName = Some("Bjorn"))),
-      organisation = None
+  val testApiResponseBody = RegWithIdApiResponse(registerWithIDResponse =
+    RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "200"),
+      responseDetail = ResponseDetail(
+        SAFEID = "Test-SafeId",
+        address = testAddressResponse,
+        individual = Some(IndividualResponse(firstName = "Katie", lastName = "Long", middleName = Some("Bjorn"))),
+        organisation = None
+      )
     )
   )
 
   val testApiResponseJson: String = """{
+                              |"registerWithIDResponse": {
                               |  "responseCommon": {
                               |    "processingDate": "2025-11-03",
                               |    "returnParameters": [
@@ -89,6 +92,7 @@ class RegistrationConnectorISpec
                               |    "isAnIndividual": true,
                               |    "isEditable": false
                               |  }
+                              |}
                               |}""".stripMargin
 
   val testApiErrorDetailResponseJson: String = """{
@@ -164,37 +168,41 @@ class RegistrationConnectorISpec
 
   val testOrganisationApiResponseJson: String =
     """{
-    "responseCommon": {
-      "status": "OK",
-      "processingDate": "2025-11-03"
-    },
-    "responseDetail": {
-      "SAFEID": "XE0000123456789",
-      "organisation": {
-        "organisationName": "Test Limited",
-        "code": "0001"
+    "registerWithIDResponse": {
+      "responseCommon": {
+        "status": "OK",
+        "processingDate": "2025-11-03"
       },
-      "address": {
-        "addressLine1": "123 Test Street",
-        "addressLine2": "Islington",
-        "countryCode": "GB"
+      "responseDetail": {
+        "SAFEID": "XE0000123456789",
+        "organisation": {
+          "organisationName": "Test Limited",
+          "code": "0001"
+        },
+        "address": {
+          "addressLine1": "123 Test Street",
+          "addressLine2": "Islington",
+          "countryCode": "GB"
+        }
       }
     }
   }"""
 
-  val testOrganisationApiResponseBody = RegWithIdOrgApiResponse(
-    responseCommon = ResponseCommon(status = "OK"),
-    responseDetail = ResponseDetail(
-      SAFEID = "XE0000123456789",
-      organisation = Some(OrganisationResponse(organisationName = "Test Limited", code = Some("0001"))),
-      individual = None,
-      address = AddressResponse(
-        addressLine1 = "123 Test Street",
-        addressLine2 = Some("Islington"),
-        addressLine3 = None,
-        addressLine4 = None,
-        countryCode = "GB",
-        postalCode = None
+  val testOrganisationApiResponseBody = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "OK"),
+      responseDetail = ResponseDetail(
+        SAFEID = "XE0000123456789",
+        organisation = Some(OrganisationResponse(organisationName = "Test Limited", code = Some("0001"))),
+        individual = None,
+        address = AddressResponse(
+          addressLine1 = "123 Test Street",
+          addressLine2 = Some("Islington"),
+          addressLine3 = None,
+          addressLine4 = None,
+          countryCode = "GB",
+          postalCode = None
+        )
       )
     )
   )
