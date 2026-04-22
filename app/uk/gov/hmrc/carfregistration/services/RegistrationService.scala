@@ -118,7 +118,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
             lastName = frontendRequest.lastName,
             dateOfBirth = frontendRequest.dateOfBirth
           ),
-          address = frontendRequest.address,
+          address = AddressDetailsApi.apply(frontendRequest.address),
           contactDetails = frontendRequest.contactDetails
         )
       )
@@ -140,7 +140,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
           organisation = OrganisationDetailsWithoutId(
             organisationName = frontendRequest.organisationName
           ),
-          address = frontendRequest.address,
+          address = AddressDetailsApi.apply(frontendRequest.address),
           contactDetails = frontendRequest.contactDetails
         )
       )
