@@ -5,6 +5,7 @@ POST        /individual/utr                        uk.gov.hmrc.carfregistration.
 POST        /organisation/utr/user-entered         uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerUserEntryOrganisationWithId()
 POST        /organisation/utr/ct-auto-match        uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerAutoMatchOrganisationWithId()
 
+GET         /subscription/display/:carfId          uk.gov.hmrc.carfregistration.controllers.SubscriptionController.displaySubscription(carfId: String)
 POST        /subscription/subscribe                uk.gov.hmrc.carfregistration.controllers.SubscriptionController.createSubscription()
 
 POST        /individual-without-id                 uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithoutId()

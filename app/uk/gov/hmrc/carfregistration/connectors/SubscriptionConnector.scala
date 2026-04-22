@@ -23,16 +23,20 @@ import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
+import uk.gov.hmrc.carfregistration.models
 import uk.gov.hmrc.carfregistration.models.requests.SubscriptionRequest
-import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError}
+import uk.gov.hmrc.carfregistration.models.responses.SubscriptionDisplayResponse
+import uk.gov.hmrc.carfregistration.models.{JsonValidationError, *}
+import uk.gov.hmrc.carfregistration.types.ResultT
 import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.net.URL
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 class SubscriptionConnector @Inject() (
     config: AppConfig,
@@ -40,16 +44,22 @@ class SubscriptionConnector @Inject() (
 )(implicit ec: ExecutionContext)
     extends Logging {
 
-  private val backendBaseUrl = config.createSubscriptionBaseUrl
+  private val createSubscriptionBackendBaseUrl  = config.createSubscriptionBaseUrl
+  private val displaySubscriptionBackendBaseUrl = config.displaySubscriptionBaseUrl
 
   def sendSubscriptionInformation(
       subscription: SubscriptionRequest
   )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, HttpResponse] =
-    createSubscription(subscription, url"$backendBaseUrl")
+    createSubscription(subscription, url"$createSubscriptionBackendBaseUrl")
+
+  def displaySubscriptionInformation(
+      carfReference: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, SubscriptionDisplayResponse] =
+    displaySubscription(url"$displaySubscriptionBackendBaseUrl/$carfReference")
 
   private def createSubscription(request: SubscriptionRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
-  ): EitherT[Future, ApiError, HttpResponse] =
+  ): ResultT[HttpResponse] = {
     logger.info(s"Calling endpoint: ${endpoint.toString}")
     EitherT {
       http
@@ -79,6 +89,44 @@ class SubscriptionConnector @Inject() (
           }
         }
     }
+  }
+
+  private def displaySubscription(endpoint: URL)(implicit
+      hc: HeaderCarrier
+  ): ResultT[SubscriptionDisplayResponse] = {
+    logger.info(s"Calling endpoint: ${endpoint.toString}")
+    EitherT {
+      http
+        .get(endpoint)
+        .setHeader(additionalHeaders(config, "display-subscription"): _*)
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK                                                                               =>
+              Try(httpResponse.json.as[SubscriptionDisplayResponse]) match {
+                case Success(data)      =>
+                  logger.info(s"Display subscription success! Response: ${Json.prettyPrint(Json.toJson(data))}")
+                  Right(data)
+                case Failure(exception) =>
+                  logger.warn(
+                    s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                  )
+                  Left(JsonValidationError)
+              }
+            case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
+            case NOT_FOUND                                                                        =>
+              logger.warn(
+                s"No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+              )
+              Left(NotFoundError)
+            case _                                                                                =>
+              logger.warn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
+              Left(InternalServerError)
+          }
+        }
+    }
+  }
 
   private def logDownStreamError(status: Int, body: String): Unit = {
     val error = Try(Json.parse(body).validate[ErrorDetail])

@@ -19,9 +19,10 @@ package uk.gov.hmrc.carfregistration.controllers
 import com.google.inject.Inject
 import play.api.Logging
 import play.api.libs.json.*
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
+import uk.gov.hmrc.carfregistration.models.NotFoundError
 import uk.gov.hmrc.carfregistration.models.requests.SubscriptionRequest
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -52,6 +53,16 @@ class SubscriptionController @Inject() (
               InternalServerError("Error sending subscription information")
           }
       )
+  }
+
+  def displaySubscription(carfId: String): Action[AnyContent] = authorise.async { implicit request =>
+    subscriptionConnector.displaySubscriptionInformation(carfId).value.flatMap {
+      case Right(response)     => Future.successful(Ok(Json.toJson(response)))
+      case Left(NotFoundError) =>
+        Future.successful(NotFound("Could not find a subscription record for this user"))
+      case Left(_)             =>
+        Future.successful(InternalServerError("Unexpected error"))
+    }
   }
 
 }
