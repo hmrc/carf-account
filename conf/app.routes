@@ -7,6 +7,7 @@ POST        /organisation/utr/ct-auto-match        uk.gov.hmrc.carfregistration.
 
 GET         /subscription/display/:carfId          uk.gov.hmrc.carfregistration.controllers.SubscriptionController.displaySubscription(carfId: String)
 POST        /subscription/subscribe                uk.gov.hmrc.carfregistration.controllers.SubscriptionController.createSubscription()
+PUT         /subscription/amend                    uk.gov.hmrc.carfregistration.controllers.SubscriptionController.updateSubscription()
 
 POST        /individual-without-id                 uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerIndividualWithoutId()
 POST        /organisation-without-id               uk.gov.hmrc.carfregistration.controllers.RegistrationController.registerOrganisationWithoutId()

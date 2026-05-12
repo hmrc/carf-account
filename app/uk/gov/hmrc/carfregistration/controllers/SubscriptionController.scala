@@ -55,6 +55,29 @@ class SubscriptionController @Inject() (
       )
   }
 
+  def updateSubscription: Action[JsValue] = authorise(parse.json).async { implicit request =>
+    import play.api.libs.json.*
+    request.body
+      .validate[SubscriptionRequest]
+      .fold(
+        invalid = _ =>
+          Future.successful(
+            BadRequest("Update Subscription Request's Json is invalid")
+          ),
+        valid = subscription =>
+          subscriptionConnector.updateSubscription(subscription).value.map {
+            case Right(httpResponse)                =>
+              Ok(httpResponse.body)
+            case Left((apiError, maybeErrorDetail)) =>
+              logger.warn(s"Error sending updated subscription information: $apiError")
+              maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
+                errorDetail =>
+                  Status(INTERNAL_SERVER_ERROR)(Json.toJson(errorDetail))
+              }
+          }
+      )
+  }
+
   def displaySubscription(carfId: String): Action[AnyContent] = authorise.async { implicit request =>
     subscriptionConnector.displaySubscriptionInformation(carfId).value.flatMap {
       case Right(response)     => Future.successful(Ok(Json.toJson(response)))

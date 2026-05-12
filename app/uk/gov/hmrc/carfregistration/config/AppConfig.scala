@@ -47,5 +47,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     s"$createSubscriptionHost${config.get[String]("microservice.services.create-subscription.uri")}"
 
   private val displaySubscriptionHost: String = servicesConfig.baseUrl("display-subscription")
-  val displaySubscriptionBaseUrl: String      =
+
+  val displaySubscriptionBaseUrl: String =
     s"$displaySubscriptionHost${config.get[String]("microservice.services.display-subscription.uri")}"
+
+  private val updateSubscriptionHost: String = servicesConfig.baseUrl("update-subscription")
+
+  val updateSubscriptionBaseUrl: String =
+    s"$updateSubscriptionHost${config.get[String]("microservice.services.update-subscription.uri")}"

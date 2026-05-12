@@ -27,7 +27,8 @@ import play.api.test.Helpers.{contentAsString, status}
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfregistration.controllers.SubscriptionController
 import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
-import uk.gov.hmrc.carfregistration.models.{Individual, InternalServerError}
+import uk.gov.hmrc.carfregistration.models.{ErrorDetail, ErrorDetails, Individual, InternalServerError}
+import uk.gov.hmrc.carfregistration.models.ApiError
 import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.Future
@@ -86,40 +87,14 @@ class SubscriptionControllerSpec extends SpecBase {
         contentAsString(result) mustBe testSuccessResponseBody
       }
 
-      "must return internal server error when the connector returns NOT_FOUND (connector converts to Left)" in {
-        when(mockConnector.sendSubscriptionInformation(any())(any()))
-          .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
-
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
-
-        status(result) mustBe INTERNAL_SERVER_ERROR
-      }
-
-      "must return internal server error when the connector returns BAD_REQUEST (connector converts to Left)" in {
-        when(mockConnector.sendSubscriptionInformation(any())(any()))
-          .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
-
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
-
-        status(result) mustBe INTERNAL_SERVER_ERROR
-      }
-
       "must return internal server error when the connector returns SERVICE_UNAVAILABLE (connector converts to Left)" in {
         when(mockConnector.sendSubscriptionInformation(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
 
         val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
-      }
-
-      "must return internal server error when the connector returns FORBIDDEN (connector converts to Left)" in {
-        when(mockConnector.sendSubscriptionInformation(any())(any()))
-          .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
-
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
-
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Error sending subscription information")
       }
 
       "must return unprocessable entity with already_registered status when error code returned is 007" in {
@@ -156,18 +131,54 @@ class SubscriptionControllerSpec extends SpecBase {
         contentAsString(result) must include("Invalid ID type")
       }
 
-      "must return internal server error when the connector returns a Left error" in {
-        when(mockConnector.sendSubscriptionInformation(any())(any()))
-          .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
+      "must return bad request when the request body is not valid JSON" in {
+        val result = testController.createSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        result.toString mustBe Future.successful(BadRequest("")).toString
+      }
+    }
 
-        status(result)        mustBe INTERNAL_SERVER_ERROR
-        contentAsString(result) must include("Error sending subscription information")
+    "update Subscription" - {
+      "must return success response when the connector successfully sends subscription information" in {
+        when(mockConnector.updateSubscription(any())(any()))
+          .thenReturn(
+            EitherT.rightT[Future, (ApiError, Option[ErrorDetail])](
+              HttpResponse(OK, testSuccessResponseBody)
+            )
+          )
+
+        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+
+        status(result)          mustBe OK
+        contentAsString(result) mustBe testSuccessResponseBody
+      }
+
+      "must return internal server error when the connector returns an error status code" in {
+
+        val errorDetail = ErrorDetail(
+          errorDetail = ErrorDetails(
+            "2026-05-11T21:54:12.015Z",
+            "1ae81b45-41b4-4642-ae1c-db1126900001",
+            Some("503"),
+            Some("Service Unavailable"),
+            None,
+            None
+          )
+        )
+
+        when(mockConnector.updateSubscription(any())(any()))
+          .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, Some(errorDetail))))
+
+        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+
+        contentAsString(result) must include("Service Unavailable")
+        contentAsString(result) must include("correlationId")
       }
 
       "must return bad request when the request body is not valid JSON" in {
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
+        val result = testController.updateSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
         result.toString mustBe Future.successful(BadRequest("")).toString
       }

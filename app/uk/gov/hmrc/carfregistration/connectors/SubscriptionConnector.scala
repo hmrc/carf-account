@@ -45,6 +45,7 @@ class SubscriptionConnector @Inject() (
 
   private val createSubscriptionBackendBaseUrl  = config.createSubscriptionBaseUrl
   private val displaySubscriptionBackendBaseUrl = config.displaySubscriptionBaseUrl
+  private val updateSubscriptionBackendBaseUrl  = config.updateSubscriptionBaseUrl
 
   def sendSubscriptionInformation(
       subscription: SubscriptionRequest
@@ -60,6 +61,7 @@ class SubscriptionConnector @Inject() (
       hc: HeaderCarrier
   ): ResultT[HttpResponse] = {
     logger.info(s"Calling endpoint: ${endpoint.toString}")
+
     EitherT {
       http
         .post(endpoint)
@@ -85,6 +87,32 @@ class SubscriptionConnector @Inject() (
               logger.warn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
               logDownStreamError(status, httpResponse.body)
               Left(InternalServerError)
+          }
+        }
+    }
+  }
+
+  def updateSubscription(request: SubscriptionRequest)(implicit
+      hc: HeaderCarrier
+  ): EitherT[Future, (ApiError, Option[ErrorDetail]), HttpResponse] = {
+
+    val endpoint = url"$updateSubscriptionBackendBaseUrl"
+
+    logger.info(s"Calling endpoint: ${endpoint.toString}")
+
+    EitherT {
+      http
+        .put(endpoint)
+        .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "update-subscription"): _*)
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK     =>
+              Right(httpResponse)
+            case status =>
+              logger.warn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
           }
         }
     }
@@ -127,15 +155,17 @@ class SubscriptionConnector @Inject() (
     }
   }
 
-  private def logDownStreamError(status: Int, body: String): Unit = {
+  private def logDownStreamError(status: Int, body: String): Option[ErrorDetail] = {
     val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
-      case Success(JsSuccess(value, _)) =>
+      case Success(JsSuccess(errorDetailBody, _)) =>
         logger.warn(
-          s"Error with submission: ${value.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
+          s"Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
         )
-      case _                            =>
+        Some(errorDetailBody)
+      case _                                      =>
         logger.warn(s"Error with submission: $status: response is not valid JSON")
+        None
     }
   }
 

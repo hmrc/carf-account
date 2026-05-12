@@ -17,6 +17,9 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post, put, stubFor, urlPathMatching}
+import itutil.ApplicationWithWiremock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor, urlPathMatching}
 import itutil.{ApplicationWithWiremock, ConnectorSpecHelper}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
@@ -26,7 +29,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
 import uk.gov.hmrc.carfregistration.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
-import uk.gov.hmrc.carfregistration.models.{ApiError, Individual, InternalServerError, NotFoundError}
+import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, ErrorDetails, Individual, InternalServerError, NotFoundError, SourceFaultDetail}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 class SubscriptionConnectorISpec
@@ -90,7 +93,7 @@ class SubscriptionConnectorISpec
     )
   )
 
-  val testCreateSubscriptionResponseJson: String =
+  val testSubscriptionResponseJson: String =
     """{
       |  "success": {
       |    "crfaReference": "XMFA1234567890",
@@ -159,13 +162,13 @@ class SubscriptionConnectorISpec
           .willReturn(
             aResponse()
               .withStatus(200)
-              .withBody(testCreateSubscriptionResponseJson)
+              .withBody(testSubscriptionResponseJson)
           )
       )
 
       val result: Either[ApiError, HttpResponse] =
         connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
-      result.map(_.body) mustBe Right(testCreateSubscriptionResponseJson)
+      result.map(_.body) mustBe Right(testSubscriptionResponseJson)
     }
 
     "return Right with UNPROCESSABLE_ENTITY and the json body with already_registered when error code is 007" in {
@@ -264,6 +267,68 @@ class SubscriptionConnectorISpec
 
       val result = connector.sendSubscriptionInformation(testSubscriptionRequest).value.futureValue
       result mustBe Left(InternalServerError)
+    }
+  }
+
+  "updateSubscription" should {
+    "successfully retrieve the API response for a 200 OK" in {
+
+      val mappingBuilder = addMatchHeaders(
+        put(urlPathMatching("/dac6/updatesubscriptiondata/carf/v1"))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(testSubscriptionResponseJson)
+          )
+      )
+
+      val result = connector.updateSubscription(testSubscriptionRequest).value.futureValue
+
+      result.map(_.body) mustBe Right(testSubscriptionResponseJson)
+    }
+
+    "return Left InternalServerError if BAD_REQUEST status response is returned from third party" in {
+      stubFor(
+        put(urlPathMatching("/dac6/updatesubscriptiondata/carf/v1"))
+          .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val expectedErrorDetail = ErrorDetail(
+        errorDetail = ErrorDetails(
+          "2020-09-25T21:54:12.015Z",
+          "1ae81b45-41b4-4642-ae1c-db1126900001",
+          Some("400"),
+          Some("Test Error Message"),
+          Some("Test"),
+          Some(SourceFaultDetail(
+            List("Test Error Detail")
+          ))
+        )
+      )
+
+      val result = connector.updateSubscription(testSubscriptionRequest).value.futureValue
+      result mustBe Left((InternalServerError, Option(expectedErrorDetail)))
+    }
+
+    "return InternalServerError with no errorDetail if error response cannot be parsed" in {
+      stubFor(
+        put(urlPathMatching("/dac6/updatesubscriptiondata/carf/v1"))
+          .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(
+
+            """{
+              |  "errorDetail": {
+              |    "errorMessage": "Bad Json folks that is all",
+              |  }
+              |}""".stripMargin
+          ))
+      )
+
+      val result = connector.updateSubscription(testSubscriptionRequest).value.futureValue
+      result mustBe Left((InternalServerError, None))
     }
   }
 
