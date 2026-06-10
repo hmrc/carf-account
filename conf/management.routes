@@ -1,0 +1,3 @@
+# management microservice specific routes
+
+GET        /view-rcasp/:carfId/:rcaspId          uk.gov.hmrc.carfregistration.controllers.RcaspController.viewRcasp(carfId: String, rcaspId: String)

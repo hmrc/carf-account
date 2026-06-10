@@ -17,9 +17,6 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post, put, stubFor, urlPathMatching}
-import itutil.ApplicationWithWiremock
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor, urlPathMatching}
 import itutil.{ApplicationWithWiremock, ConnectorSpecHelper}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
@@ -29,7 +26,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
 import uk.gov.hmrc.carfregistration.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
-import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, ErrorDetails, Individual, InternalServerError, NotFoundError, SourceFaultDetail}
+import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 class SubscriptionConnectorISpec
@@ -96,7 +93,7 @@ class SubscriptionConnectorISpec
   val testSubscriptionResponseJson: String =
     """{
       |  "success": {
-      |    "crfaReference": "XMFA1234567890",
+      |    "carfReference": "XMFA1234567890",
       |    "processingDate": "2001-12-17T09:30:47Z"
       |  }
     |}""".stripMargin
@@ -304,9 +301,11 @@ class SubscriptionConnectorISpec
           Some("400"),
           Some("Test Error Message"),
           Some("Test"),
-          Some(SourceFaultDetail(
-            List("Test Error Detail")
-          ))
+          Some(
+            SourceFaultDetail(
+              List("Test Error Detail")
+            )
+          )
         )
       )
 
@@ -317,14 +316,17 @@ class SubscriptionConnectorISpec
     "return InternalServerError with no errorDetail if error response cannot be parsed" in {
       stubFor(
         put(urlPathMatching("/dac6/updatesubscriptiondata/carf/v1"))
-          .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(
-
-            """{
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+              .withBody(
+                """{
               |  "errorDetail": {
               |    "errorMessage": "Bad Json folks that is all",
               |  }
               |}""".stripMargin
-          ))
+              )
+          )
       )
 
       val result = connector.updateSubscription(testSubscriptionRequest).value.futureValue
