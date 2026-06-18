@@ -102,11 +102,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
-                  logger.debug(s"Register individual with ID Success! Response: $data")
+                  logger.debug(s"Register individual with ID Success")
                   Right(data)
                 case Failure(exception) =>
                   logger.warn(
-                    s"Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                    s"Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}>",
+                    exception
                   )
                   Left(JsonValidationError)
               }
@@ -140,11 +141,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithoutIdApiResponse]) match {
                 case Success(response)  =>
-                  logger.debug(s"Register without ID Success! Response: $response")
+                  logger.debug(s"Register without ID Success")
                   Right(response)
                 case Failure(exception) =>
                   logger.warn(
-                    s"Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                    s"Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}>",
+                    exception
                   )
                   Left(JsonValidationError)
               }

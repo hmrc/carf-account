@@ -38,7 +38,6 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithNino(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithNinoIndFrontendRequest] { request =>
-      logger.debug(s"registerIndividualWithNino \n-> $request")
       service.registerIndWithNino(request).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
@@ -50,7 +49,6 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithUtr(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithUtrIndFrontendRequest] { request =>
-      logger.debug(s"registerIndividualWithUtr request = \n-> $request")
       service.registerIndWithUtr(request).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
@@ -62,7 +60,6 @@ class RegistrationController @Inject() (
 
   def registerUserEntryOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithIdUserEntryOrgFrontendRequest] { organisationRequest =>
-      logger.debug(s"RegisterUserEnteredOrganisationWithIdFrontendRequest request = \n-> $organisationRequest")
       service.registerUserEntryOrgWithId(organisationRequest).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
@@ -75,7 +72,6 @@ class RegistrationController @Inject() (
 
   def registerAutoMatchOrganisationWithId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithIdAutoMatchOrgFrontendRequest] { organisationRequest =>
-      logger.debug(s"RegisterAutoMatchOrganisationWithIdFrontendRequest request = \n-> $organisationRequest")
       service.registerAutoMatchOrgWithId(organisationRequest).flatMap {
         case Right(response)     => Future.successful(Ok(Json.toJson(response)))
         case Left(NotFoundError) =>
@@ -88,7 +84,6 @@ class RegistrationController @Inject() (
 
   def registerIndividualWithoutId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithoutIdIndFrontendRequest] { req =>
-      logger.debug(s"registerIndividualWithoutId request = \n-> $req")
       service.registerIndWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>
@@ -100,7 +95,6 @@ class RegistrationController @Inject() (
 
   def registerOrganisationWithoutId(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithoutIdOrgFrontendRequest] { req =>
-      logger.debug(s"registerOrganisationWithoutId request = \n-> $req")
       service.registerOrgWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>

@@ -132,11 +132,12 @@ class SubscriptionConnector @Inject() (
             case OK                                                                               =>
               Try(httpResponse.json.as[SubscriptionDisplayResponse]) match {
                 case Success(data)      =>
-                  logger.info(s"Display subscription success! Response: ${Json.prettyPrint(Json.toJson(data))}")
+                  logger.info(s"Display subscription success")
                   Right(data)
                 case Failure(exception) =>
                   logger.warn(
-                    s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                    s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
+                    exception
                   )
                   Left(JsonValidationError)
               }
