@@ -57,6 +57,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     s"$updateSubscriptionHost${config.get[String]("microservice.services.update-subscription.uri")}"
 
   private val viewRcaspHost: String = servicesConfig.baseUrl("view-rcasp")
+  val viewRcaspBaseUrl: String      = s"$viewRcaspHost${config.get[String]("microservice.services.view-rcasp.uri")}"
 
-  val viewRcaspBaseUrl: String =
-    s"$viewRcaspHost${config.get[String]("microservice.services.view-rcasp.uri")}"
+  private val submitRcaspHost: String = servicesConfig.baseUrl("submit-rcasp")
+  val submitRcaspBaseUrl: String      = s"$submitRcaspHost${config.get[String]("microservice.services.submit-rcasp.uri")}"

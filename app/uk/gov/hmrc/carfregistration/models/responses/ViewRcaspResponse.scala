@@ -17,31 +17,7 @@
 package uk.gov.hmrc.carfregistration.models.responses
 
 import play.api.libs.json.*
-
-case class TinDetails(TINType: String, TIN: String, IssuedBy: String)
-
-object TinDetails {
-  implicit val format: OFormat[TinDetails] = Json.format[TinDetails]
-}
-
-case class RcaspContact(ContactName: String, EmailAddress: String, PhoneNumber: Option[String])
-
-object RcaspContact {
-  implicit val format: OFormat[RcaspContact] = Json.format[RcaspContact]
-}
-
-case class RcaspAddress(
-    AddressLine1: String,
-    AddressLine2: Option[String],
-    AddressLine3: Option[String],
-    AddressLine4: Option[String],
-    PostalCode: String,
-    CountryCode: String
-)
-
-object RcaspAddress {
-  implicit val format: OFormat[RcaspAddress] = Json.format[RcaspAddress]
-}
+import uk.gov.hmrc.carfregistration.models.{RcaspAddress, RcaspContactDetails, TinDetails}
 
 sealed trait RcaspDetails {
   val SubscriptionID: String
@@ -50,7 +26,7 @@ sealed trait RcaspDetails {
   val PartyType: String
   val TINDetails: Option[List[TinDetails]]
   val AddressDetails: RcaspAddress
-  val PrimaryContactDetails: Option[RcaspContact]
+  val PrimaryContactDetails: Option[RcaspContactDetails]
 }
 
 object RcaspDetails {
@@ -77,7 +53,7 @@ case class IndividualRcaspDetails(
     LastName: String,
     TINDetails: Option[List[TinDetails]],
     AddressDetails: RcaspAddress,
-    PrimaryContactDetails: Option[RcaspContact]
+    PrimaryContactDetails: Option[RcaspContactDetails]
 ) extends RcaspDetails
 
 object IndividualRcaspDetails {
@@ -93,8 +69,8 @@ case class OrganisationRcaspDetails(
     TradingName: String,
     TINDetails: Option[List[TinDetails]],
     AddressDetails: RcaspAddress,
-    PrimaryContactDetails: Option[RcaspContact],
-    SecondaryContactDetails: Option[RcaspContact]
+    PrimaryContactDetails: Option[RcaspContactDetails],
+    SecondaryContactDetails: Option[RcaspContactDetails]
 ) extends RcaspDetails
 
 object OrganisationRcaspDetails {

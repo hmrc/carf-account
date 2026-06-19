@@ -21,14 +21,14 @@ import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import play.api.http.Status.*
-import play.api.libs.json.Json
-import play.api.mvc.Results.InternalServerError
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.Results.{BadRequest, InternalServerError}
 import play.api.test.Helpers.{contentAsString, status}
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
 import uk.gov.hmrc.carfregistration.controllers.RcaspController
-import uk.gov.hmrc.carfregistration.models.responses.{OrganisationRcaspDetails, RcaspAddress, RcaspContact, RcaspResponseCommon, RcaspResponseDetails, TinDetails, ViewRcasp, ViewRcaspResponse}
-import uk.gov.hmrc.carfregistration.models.{ApiError, JsonValidationError}
+import uk.gov.hmrc.carfregistration.models.{ApiError, JsonValidationError, RcaspAddress, RcaspContactDetails, TinDetails}
+import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.Future
 
@@ -37,11 +37,11 @@ class RcaspControllerSpec extends SpecBase {
   val mockConnector: RcaspConnector   = mock[RcaspConnector]
   val testController: RcaspController = new RcaspController(cc, fakeAuthAction, mockConnector)
 
-  val exampleContact        =
-    RcaspContact(ContactName = "Prof Sada", EmailAddress = "test@example.com", PhoneNumber = Some("07123412345"))
-  val exampleCarfId         = "XCCAR0024000102"
-  val exampleRcaspId        = "none"
-  val exampleResponseCommon = RcaspResponseCommon(
+  private val exampleContact        =
+    RcaspContactDetails(ContactName = "Prof Sada", EmailAddress = "test@example.com", PhoneNumber = Some("07123412345"))
+  inline private val exampleCarfId  = "XCCAR0024000102"
+  inline private val exampleRcaspId = "none"
+  private val exampleResponseCommon = RcaspResponseCommon(
     OriginatingSystem = "CADX",
     TransmittingSystem = "EIS",
     RequestType = "VIEW",
@@ -49,7 +49,7 @@ class RcaspControllerSpec extends SpecBase {
     ResponseParameters = None
   )
 
-  val testViewRcaspResponse = ViewRcaspResponse(
+  private val testViewRcaspResponse = ViewRcaspResponse(
     ViewRCASP = ViewRcasp(
       ResponseCommon = exampleResponseCommon,
       ResponseDetails = RcaspResponseDetails(
@@ -80,7 +80,7 @@ class RcaspControllerSpec extends SpecBase {
     CountryCode = "GB"
   )
 
-  val testViewRcaspResponseJson: String = Json.toJson(testViewRcaspResponse).toString
+  private val testViewRcaspResponseJson: String = Json.toJson(testViewRcaspResponse).toString
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -90,7 +90,7 @@ class RcaspControllerSpec extends SpecBase {
   "RcaspController" - {
     "viewRcasp" - {
       "must return success response when the connector successfully sends GET request" in {
-        when(mockConnector.viewRcaspInformation(any(), any())(any()))
+        when(mockConnector.viewRcasps(any(), any())(any()))
           .thenReturn(
             EitherT.rightT[Future, ApiError](
               testViewRcaspResponse
@@ -106,7 +106,7 @@ class RcaspControllerSpec extends SpecBase {
       "must return internal server error when connector returns" - {
 
         "InternalServerError" in {
-          when(mockConnector.viewRcaspInformation(any(), any())(any()))
+          when(mockConnector.viewRcasps(any(), any())(any()))
             .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](InternalServerError))
 
           val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
@@ -116,7 +116,7 @@ class RcaspControllerSpec extends SpecBase {
         }
 
         "JsonValidationError" in {
-          when(mockConnector.viewRcaspInformation(any(), any())(any()))
+          when(mockConnector.viewRcasps(any(), any())(any()))
             .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](JsonValidationError))
 
           val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
@@ -127,5 +127,120 @@ class RcaspControllerSpec extends SpecBase {
 
       }
     }
+
+    "submitRcasp" - {
+      val testSubmitResponseBody = SubmitRcaspResponse(
+        SubmitResponseDetails(
+          SubmitReturnParameters(
+            "RCASPID",
+            "RCASP12345"
+          )
+        )
+      )
+
+      val expectedSubmitResponse =
+        """{"ResponseDetails":{"ReturnParameters":{"Key":"RCASPID","Value":"RCASP12345"}}}"""
+
+      "must return success when the connector returns a submit rcasp response" in {
+        when(mockConnector.submitRcasp(any())(any()))
+          .thenReturn(
+            EitherT.rightT[Future, ApiError](testSubmitResponseBody)
+          )
+
+        val result = testController.submitRcasp()(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+
+        status(result)          mustBe OK
+        contentAsString(result) mustBe expectedSubmitResponse
+      }
+
+      "must return Internal Server Error when the connector returns Internal server error" in {
+        when(mockConnector.submitRcasp(any())(any()))
+          .thenReturn(
+            EitherT.leftT[Future, ApiError](uk.gov.hmrc.carfregistration.models.InternalServerError)
+          )
+
+        val result = testController.submitRcasp()(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "must return Internal Server Error when the connector returns Json validation error" in {
+        when(mockConnector.submitRcasp(any())(any()))
+          .thenReturn(
+            EitherT.leftT[Future, ApiError](JsonValidationError)
+          )
+
+        val result = testController.submitRcasp()(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "must return Bad Request when the request body is not valid JSON" in {
+        when(mockConnector.submitRcasp(any())(any()))
+          .thenReturn(
+            EitherT.leftT[Future, ApiError](JsonValidationError)
+          )
+
+        val result = testController.submitRcasp()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
+
+        result.toString mustBe Future.successful(BadRequest("CreateRcaspRequest is invalid")).toString
+      }
+    }
   }
+
+  private def buildCreateOrgRcaspJson: JsValue =
+    Json.parse(
+      s"""
+         |{
+         |  "RCASPManagement": {
+         |    "RequestCommon": {
+         |      "OriginatingSystem": "MDTP",
+         |      "TransmittingSystem": "EIS",
+         |      "RequestType": "CREATE",
+         |      "Regime": "CARF",
+         |      "RequestParameters": [
+         |        {
+         |          "ParamName": "Test",
+         |          "ParamValue": "Test"
+         |        }
+         |      ]
+         |    },
+         |    "RequestDetails": {
+         |      "RCASPName": "Amazon UK",
+         |      "IsRCASPUser": false,
+         |      "SubscriptionID": "345567808",
+         |      "PartyType": "Organisation",
+         |      "TradingName": "Tools for Traders Limited",
+         |      "TINDetails": [
+         |        {
+         |          "TINType": "UTR",
+         |          "TIN": "68936493",
+         |          "IssuedBy": "GB"
+         |        }
+         |      ],
+         |      "AddressDetails": {
+         |        "AddressLine1": "22",
+         |        "AddressLine2": "High Street",
+         |        "AddressLine3": "Dawley",
+         |        "AddressLine4": "Dawley",
+         |        "CountryCode": "GB",
+         |        "PostalCode": "TF22 2RE"
+         |      },
+         |      "PrimaryContactDetails": {
+         |        "ContactName": "John Smith",
+         |        "EmailAddress": "test@gmail.com",
+         |        "PhoneNumber": "0789876568"
+         |      },
+         |      "SecondaryContactDetails": {
+         |        "ContactName": "John Smith",
+         |        "EmailAddress": "jdoe@example.com",
+         |        "PhoneNumber": "0789876568"
+         |      }
+         |    }
+         |  }
+         |}
+         |
+         |""".stripMargin
+    )
+
 }

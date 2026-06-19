@@ -22,10 +22,10 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status.*
-import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.models.responses.{OrganisationRcaspDetails, RcaspAddress, RcaspContact, RcaspResponseCommon, RcaspResponseDetails, TinDetails, ViewRcasp, ViewRcaspResponse}
-import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError}
+import uk.gov.hmrc.carfregistration.models.requests.{CreateRcaspRequest, IndividualRcaspDetails, RCASPManagementRequest, RcaspCreateRequestCommon, RequestParameter}
+import uk.gov.hmrc.carfregistration.models.responses.{OrganisationRcaspDetails, RcaspResponseCommon, RcaspResponseDetails, SubmitRcaspResponse, SubmitResponseDetails, SubmitReturnParameters, ViewRcasp, ViewRcaspResponse}
+import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, RcaspAddress, RcaspContactDetails, TinDetails}
 import uk.gov.hmrc.http.HeaderCarrier
 
 class RcaspConnectorISpec
@@ -40,7 +40,7 @@ class RcaspConnectorISpec
   val connector: RcaspConnector = app.injector.instanceOf[RcaspConnector]
 
   val exampleContact        =
-    RcaspContact(ContactName = "Prof Sada", EmailAddress = "test@example.com", PhoneNumber = Some("07123412345"))
+    RcaspContactDetails(ContactName = "Prof Sada", EmailAddress = "test@example.com", PhoneNumber = Some("07123412345"))
   val exampleCarfId         = "XCCAR0024000102"
   val exampleRcaspId        = "none"
   val exampleResponseCommon = RcaspResponseCommon(
@@ -82,54 +82,7 @@ class RcaspConnectorISpec
     CountryCode = "GB"
   )
 
-  val testViewRcaspResponseJson: String =
-    """{
-      |  "ViewRCASP": {
-      |    "ResponseCommon": {
-      |      "OriginatingSystem": "CADX",
-      |      "TransmittingSystem": "EIS",
-      |      "RequestType": "VIEW",
-      |      "Regime": "CARF"
-      |    },
-      |    "ResponseDetails": {
-      |      "RCASPList": [
-      |        {
-      |          "SubscriptionID": "XCCAR0024000102",
-      |          "RCASPID": "none",
-      |          "IsRCASPUser": true,
-      |          "PartyType": "Organisation",
-      |          "RCASPName": "Mesagoza",
-      |          "TradingName": "Uva Academy",
-      |          "TINDetails": [
-      |            {
-      |              "TINType": "UTR",
-      |              "TIN": "68936493",
-      |              "IssuedBy": "GB"
-      |            }
-      |          ],
-      |          "AddressDetails": {
-      |            "AddressLine1": "64",
-      |            "AddressLine2": "Zoo",
-      |            "AddressLine3": "Lane",
-      |            "AddressLine4": "Sixty Four",
-      |            "PostalCode": "G66 2AZ",
-      |            "CountryCode": "GB"
-      |          },
-      |          "PrimaryContactDetails": {
-      |            "ContactName": "Prof Sada",
-      |            "EmailAddress": "test@example.com",
-      |            "PhoneNumber": "07123412345"
-      |          },
-      |          "SecondaryContactDetails": {
-      |            "ContactName": "Prof Turo",
-      |            "EmailAddress": "test@example.com",
-      |            "PhoneNumber": "07123412345"
-      |          }
-      |        }
-      |      ]
-      |    }
-      |  }
-      |}""".stripMargin
+
 
   val testApiErrorDetailResponseJson: String =
     """{
@@ -147,9 +100,58 @@ class RcaspConnectorISpec
       |  }
       |}""".stripMargin
 
-  "viewRcaspInformation" should {
+  "viewRcasp" should {
 
     val testUrl = s"/dac6/viewrcaspdata/v1/$exampleCarfId/$exampleRcaspId"
+
+    val testViewRcaspResponseJson: String =
+      """{
+        |  "ViewRCASP": {
+        |    "ResponseCommon": {
+        |      "OriginatingSystem": "CADX",
+        |      "TransmittingSystem": "EIS",
+        |      "RequestType": "VIEW",
+        |      "Regime": "CARF"
+        |    },
+        |    "ResponseDetails": {
+        |      "RCASPList": [
+        |        {
+        |          "SubscriptionID": "XCCAR0024000102",
+        |          "RCASPID": "none",
+        |          "IsRCASPUser": true,
+        |          "PartyType": "Organisation",
+        |          "RCASPName": "Mesagoza",
+        |          "TradingName": "Uva Academy",
+        |          "TINDetails": [
+        |            {
+        |              "TINType": "UTR",
+        |              "TIN": "68936493",
+        |              "IssuedBy": "GB"
+        |            }
+        |          ],
+        |          "AddressDetails": {
+        |            "AddressLine1": "64",
+        |            "AddressLine2": "Zoo",
+        |            "AddressLine3": "Lane",
+        |            "AddressLine4": "Sixty Four",
+        |            "PostalCode": "G66 2AZ",
+        |            "CountryCode": "GB"
+        |          },
+        |          "PrimaryContactDetails": {
+        |            "ContactName": "Prof Sada",
+        |            "EmailAddress": "test@example.com",
+        |            "PhoneNumber": "07123412345"
+        |          },
+        |          "SecondaryContactDetails": {
+        |            "ContactName": "Prof Turo",
+        |            "EmailAddress": "test@example.com",
+        |            "PhoneNumber": "07123412345"
+        |          }
+        |        }
+        |      ]
+        |    }
+        |  }
+        |}""".stripMargin
 
     "successfully retrieve the API response for a 200 OK" in {
       val mappingBuilder = addMatchHeaders(
@@ -161,7 +163,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(OK).withBody(testViewRcaspResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Right(testViewRcaspResponse)
     }
 
@@ -175,7 +177,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(OK).withBody(""))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(JsonValidationError)
     }
 
@@ -185,7 +187,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -195,17 +197,17 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
     "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
       stubFor(
         get(urlPathMatching(testUrl))
-          .willReturn(aResponse().withStatus(FORBIDDEN))
+          .willReturn(aResponse().withStatus(FORBIDDEN).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -215,7 +217,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -225,7 +227,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -235,7 +237,181 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(502))
       )
 
-      val result = connector.viewRcaspInformation(exampleCarfId, exampleRcaspId).value.futureValue
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+  }
+
+  "submitRcasp" should {
+    val testUrl = s"/dac6/SubmitRCASPData/v1"
+
+    val createRcaspRequest: CreateRcaspRequest =
+      CreateRcaspRequest(
+        RCASPManagementRequest(
+          RcaspCreateRequestCommon(
+            OriginatingSystem = "CADX",
+            TransmittingSystem = "EIS",
+            RequestType = "VIEW",
+            Regime = "CARF",
+            RequestParameters = List(RequestParameter("key", "value"))
+          ),
+          IndividualRcaspDetails(
+            SubscriptionID = "XCARF000000001",
+            IsRCASPUser = true,
+            PartyType = "Individual",
+            FirstName = "Penny",
+            LastName = "Cassiopeia",
+            TINDetails = Some(
+              List(
+                TinDetails(
+                  TINType = "UTR",
+                  TIN = "6893649",
+                  IssuedBy = "GB"
+                )
+              )
+            ),
+            AddressDetails = RcaspAddress(
+              AddressLine1 = "2 High Street",
+              AddressLine2 = Some("Birmingham"),
+              AddressLine3 = Some("Nowhereshire"),
+              AddressLine4 = Some("Down the road"),
+              PostalCode = "B23 2AZ",
+              CountryCode = "GB"
+            ),
+            PrimaryContactDetails = Some(
+              RcaspContactDetails(
+                ContactName = "Penny Cassiopeia",
+                EmailAddress = "penny.cassiopeia@uva.edu.org",
+                PhoneNumber = Some("07123412345")
+              )
+            )
+          )
+        )
+      )
+
+    val submitStubResponse =
+      """
+        |{
+        |  "ResponseDetails": {
+        |    "ReturnParameters": {
+        |      "Key": "RCASPID",
+        |      "Value": "RCASP12345"
+        |    }
+        |  }
+        |}
+        |""".stripMargin
+
+    "successfully retrieve the API response for a 200 OK" in {
+
+      val expectedResponse = SubmitRcaspResponse(
+        SubmitResponseDetails(
+          SubmitReturnParameters(
+            "RCASPID", "RCASP12345"
+          )
+        )
+      )
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(submitStubResponse))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Right(expectedResponse)
+    }
+
+    "return Left JsonValidationError if json is incorrectly formatter" in {
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(OK).withBody(""))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(JsonValidationError)
+    }
+
+    "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(aResponse()
+            .withStatus(FORBIDDEN)
+            .withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if UNPROCESSABLE_ENTITY status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if unexpected status code is returned from backend" in {
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(502))
+      )
+
+      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
   }

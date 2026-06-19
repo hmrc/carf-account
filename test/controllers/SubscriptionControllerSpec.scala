@@ -35,11 +35,11 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends SpecBase {
 
-  val mockConnector: SubscriptionConnector   = mock[SubscriptionConnector]
-  val testController: SubscriptionController =
+  private val mockConnector: SubscriptionConnector   = mock[SubscriptionConnector]
+  private val testController: SubscriptionController =
     new SubscriptionController(cc, fakeAuthAction, mockConnector)
 
-  val testContact: Contact = Contact(
+  private val testContact: Contact = Contact(
     email = "test@example.com",
     individual = Some(Individual("John", "Doe")),
     organisation = None,
@@ -47,7 +47,7 @@ class SubscriptionControllerSpec extends SpecBase {
     mobile = None
   )
 
-  val testSubscriptionRequest: SubscriptionRequest = SubscriptionRequest(
+  private val testSubscriptionRequest: SubscriptionRequest = SubscriptionRequest(
     gbUser = true,
     idNumber = "XM000123456789",
     idType = "SAFE",
@@ -56,9 +56,9 @@ class SubscriptionControllerSpec extends SpecBase {
     tradingName = Some("Test Trading Ltd")
   )
 
-  val testSubscriptionRequestJson: JsValue = Json.toJson(testSubscriptionRequest)
+  private val testSubscriptionRequestJson: JsValue = Json.toJson(testSubscriptionRequest)
 
-  val testSuccessResponseBody: String =
+  private val testSuccessResponseBody: String =
     """{
       |  "success": {
       |    "CARFReference": "XCARF1234567890",

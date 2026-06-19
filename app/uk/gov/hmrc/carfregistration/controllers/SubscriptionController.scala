@@ -56,7 +56,6 @@ class SubscriptionController @Inject() (
   }
 
   def updateSubscription: Action[JsValue] = authorise(parse.json).async { implicit request =>
-    import play.api.libs.json.*
     request.body
       .validate[SubscriptionRequest]
       .fold(

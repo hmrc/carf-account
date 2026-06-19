@@ -50,7 +50,9 @@ trait ApplicationWithWiremock
       "microservice.services.display-subscription.host" -> WireMockConstants.stubHost,
       "microservice.services.display-subscription.port" -> WireMockConstants.stubPort,
       "microservice.services.view-rcasp.host"           -> WireMockConstants.stubHost,
-      "microservice.services.view-rcasp.port"           -> WireMockConstants.stubPort
+      "microservice.services.view-rcasp.port"           -> WireMockConstants.stubPort,
+      "microservice.services.submit-rcasp.host"           -> WireMockConstants.stubHost,
+      "microservice.services.submit-rcasp.port"           -> WireMockConstants.stubPort
     )
 
   override lazy val app: Application = new GuiceApplicationBuilder()

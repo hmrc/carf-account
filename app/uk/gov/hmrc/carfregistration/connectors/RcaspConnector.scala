@@ -16,24 +16,24 @@
 
 package uk.gov.hmrc.carfregistration.connectors
 
-import cats.data.EitherT
 import com.google.inject.Inject
 import play.api.Logging
 import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import uk.gov.hmrc.carfregistration.connectors.additionalHeaders
 import uk.gov.hmrc.carfregistration.config.AppConfig
-import uk.gov.hmrc.carfregistration.models.responses.ViewRcaspResponse
+import uk.gov.hmrc.carfregistration.connectors.additionalHeaders
+import uk.gov.hmrc.carfregistration.models.requests.CreateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.responses.{SubmitRcaspResponse, ViewRcaspResponse}
 import uk.gov.hmrc.carfregistration.models.{JsonValidationError, *}
 import uk.gov.hmrc.carfregistration.types.ResultT
 import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
-import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.net.URL
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 class RcaspConnector @Inject() (
@@ -44,40 +44,74 @@ class RcaspConnector @Inject() (
 
   private val viewRcaspBackendBaseUrl = config.viewRcaspBaseUrl
 
-  def viewRcaspInformation(
+  def viewRcasps(
       carfId: String,
       rcaspId: String
-  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, ViewRcaspResponse] =
-    viewRcasp(url"$viewRcaspBackendBaseUrl/$carfId/$rcaspId")
+  )(implicit hc: HeaderCarrier): ResultT[ViewRcaspResponse] = {
+    val url = url"$viewRcaspBackendBaseUrl/$carfId/$rcaspId"
+    logger.info(s"Calling endpoint: ${url.toString}")
 
-  private def viewRcasp(endpoint: URL)(implicit hc: HeaderCarrier): ResultT[ViewRcaspResponse] = {
-    logger.info(s"Calling endpoint: ${endpoint.toString}")
-    EitherT {
+    val requestBuilder = http
+      .get(url)
+      .setHeader(additionalHeaders(config, "view-rcasp"): _*)
+
+    sendRequest(url, requestBuilder) { httpResponse =>
+      Try(httpResponse.json.as[ViewRcaspResponse]) match {
+        case Success(data)      =>
+          logger.info(s"View RCASP success! Response: ${Json.prettyPrint(Json.toJson(data))}")
+          Right(data)
+        case Failure(exception) =>
+          logger.warn(
+            s"Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
+          )
+          Left(JsonValidationError)
+      }
+    }
+  }
+
+  def submitRcasp(request: CreateRcaspRequest)(implicit hc: HeaderCarrier): ResultT[SubmitRcaspResponse] = {
+    val url = url"${config.submitRcaspBaseUrl}"
+    logger.info(s"Calling endpoint: ${url.toString}")
+
+    val requestBuilder =
       http
-        .get(endpoint)
-        .setHeader(additionalHeaders(config, "view-rcasp"): _*)
+        .post(url)
+        .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "submit-rcasp"): _*)
+
+    sendRequest(url, requestBuilder) { httpResponse =>
+      Try(httpResponse.json.as[SubmitRcaspResponse]) match {
+        case Success(data)      =>
+          logger.debug(s"RCASP submission successful ! Response: ${Json.prettyPrint(Json.toJson(data))}")
+          Right(data)
+        case Failure(exception) =>
+          logger.warn(
+            s"Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
+          )
+          Left(JsonValidationError)
+      }
+    }
+  }
+
+  private def sendRequest[T](url: URL, requestBuilder: RequestBuilder)(
+      successfulResult: HttpResponse => Either[ApiError, T]
+  ): ResultT[T] = {
+    logger.info(s"Calling endpoint: ${url.toString}")
+
+    ResultT.fromFuture(
+      requestBuilder
         .execute[HttpResponse]
         .map { httpResponse =>
           httpResponse.status match {
-            case OK                                                                               =>
-              Try(httpResponse.json.as[ViewRcaspResponse]) match {
-                case Success(data)      =>
-                  logger.info(s"View RCASP returned successfully")
-                  Right(data)
-                case Failure(exception) =>
-                  logger.warn(
-                    s"Error parsing response as ViewRcaspResponse. Endpoint: <${endpoint.toURI}>",
-                    exception
-                  )
-                  Left(JsonValidationError)
-              }
-            case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
-              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
-            case _                                                                                =>
-              logger.warn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
+            case OK => successfulResult(httpResponse)
+            case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE |
+                FORBIDDEN | METHOD_NOT_ALLOWED =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, url))
+            case _  =>
+              logger.warn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}")
               Left(InternalServerError)
           }
         }
-    }
+    )
   }
 }

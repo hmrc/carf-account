@@ -20,8 +20,10 @@ import com.google.inject.Inject
 import play.api.Logging
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
+import uk.gov.hmrc.carfregistration.models.requests.CreateRcaspRequest
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,9 +37,28 @@ class RcaspController @Inject() (
     with Logging {
 
   def viewRcasp(carfId: String, rcaspId: String): Action[AnyContent] = authorise.async { implicit request =>
-    rcaspConnector.viewRcaspInformation(carfId, rcaspId).value.flatMap {
+    rcaspConnector.viewRcasps(carfId, rcaspId).value.flatMap {
       case Right(response) => Future.successful(Ok(Json.toJson(response)))
       case Left(_)         => Future.successful(InternalServerError("Unexpected error"))
     }
+  }
+
+  def submitRcasp: Action[JsValue] = authorise(parse.json).async { implicit request =>
+    request.body
+      .validate[CreateRcaspRequest]
+      .fold(
+        invalid = _ =>
+          Future.successful(
+            BadRequest("CreateRcaspRequest is invalid")
+          ),
+        valid = createRcaspRequest =>
+          rcaspConnector.submitRcasp(createRcaspRequest).value.map {
+            case Right(submitResponse) =>
+              Ok(Json.toJson(submitResponse))
+            case Left(apiError)        =>
+              logger.warn(s"Error sending rcasp submission information: $apiError")
+              InternalServerError("Error sending rcasp submission information")
+          }
+      )
   }
 }
