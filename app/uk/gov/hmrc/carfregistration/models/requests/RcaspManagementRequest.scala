@@ -36,7 +36,7 @@ case class RcaspCreateRequestCommon(
     TransmittingSystem: String,
     RequestType: String,
     Regime: String,
-    RequestParameters: List[RequestParameter]
+    RequestParameters: Option[List[RequestParameter]]
 )
 
 object RcaspCreateRequestCommon {

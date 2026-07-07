@@ -24,11 +24,10 @@ import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, InternalServerError}
 import play.api.test.Helpers.{contentAsString, status}
-import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
 import uk.gov.hmrc.carfregistration.controllers.RcaspController
-import uk.gov.hmrc.carfregistration.models.{ApiError, JsonValidationError, RcaspAddress, RcaspContactDetails, TinDetails}
-import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.carfregistration.models.responses.*
+import uk.gov.hmrc.carfregistration.models.*
 
 import scala.concurrent.Future
 
@@ -42,7 +41,7 @@ class RcaspControllerSpec extends SpecBase {
   inline private val exampleCarfId  = "XCCAR0024000102"
   inline private val exampleRcaspId = "none"
   private val exampleResponseCommon = RcaspResponseCommon(
-    OriginatingSystem = "CADX",
+    OriginatingSystem = "MDTP",
     TransmittingSystem = "EIS",
     RequestType = "VIEW",
     Regime = "CARF",

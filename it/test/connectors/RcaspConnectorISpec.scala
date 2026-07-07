@@ -23,9 +23,9 @@ import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status.*
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.models.requests.{CreateRcaspRequest, IndividualRcaspDetails, RCASPManagementRequest, RcaspCreateRequestCommon, RequestParameter}
-import uk.gov.hmrc.carfregistration.models.responses.{OrganisationRcaspDetails, RcaspResponseCommon, RcaspResponseDetails, SubmitRcaspResponse, SubmitResponseDetails, SubmitReturnParameters, ViewRcasp, ViewRcaspResponse}
-import uk.gov.hmrc.carfregistration.models.{InternalServerError, JsonValidationError, RcaspAddress, RcaspContactDetails, TinDetails}
+import uk.gov.hmrc.carfregistration.models.requests.{CreateRcaspRequest, IndividualRcaspDetails, RCASPManagementRequest, RcaspCreateRequestCommon}
+import uk.gov.hmrc.carfregistration.models.responses.*
+import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.HeaderCarrier
 
 class RcaspConnectorISpec
@@ -44,7 +44,7 @@ class RcaspConnectorISpec
   val exampleCarfId         = "XCCAR0024000102"
   val exampleRcaspId        = "none"
   val exampleResponseCommon = RcaspResponseCommon(
-    OriginatingSystem = "CADX",
+    OriginatingSystem = "MDTP",
     TransmittingSystem = "EIS",
     RequestType = "VIEW",
     Regime = "CARF",
@@ -82,8 +82,6 @@ class RcaspConnectorISpec
     CountryCode = "GB"
   )
 
-
-
   val testApiErrorDetailResponseJson: String =
     """{
       |  "errorDetail": {
@@ -108,7 +106,7 @@ class RcaspConnectorISpec
       """{
         |  "ViewRCASP": {
         |    "ResponseCommon": {
-        |      "OriginatingSystem": "CADX",
+        |      "OriginatingSystem": "MDTP",
         |      "TransmittingSystem": "EIS",
         |      "RequestType": "VIEW",
         |      "Regime": "CARF"
@@ -249,11 +247,11 @@ class RcaspConnectorISpec
       CreateRcaspRequest(
         RCASPManagementRequest(
           RcaspCreateRequestCommon(
-            OriginatingSystem = "CADX",
+            OriginatingSystem = "MDTP",
             TransmittingSystem = "EIS",
-            RequestType = "VIEW",
+            RequestType = "CREATE",
             Regime = "CARF",
-            RequestParameters = List(RequestParameter("key", "value"))
+            RequestParameters = None
           ),
           IndividualRcaspDetails(
             SubscriptionID = "XCARF000000001",
@@ -306,7 +304,8 @@ class RcaspConnectorISpec
       val expectedResponse = SubmitRcaspResponse(
         SubmitResponseDetails(
           SubmitReturnParameters(
-            "RCASPID", "RCASP12345"
+            "RCASPID",
+            "RCASP12345"
           )
         )
       )
@@ -320,7 +319,8 @@ class RcaspConnectorISpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-              .withBody(submitStubResponse))
+              .withBody(submitStubResponse)
+          )
       )
 
       val result = connector.submitRcasp(createRcaspRequest).value.futureValue
@@ -376,9 +376,11 @@ class RcaspConnectorISpec
 
       stubFor(
         mappingBuilder
-          .willReturn(aResponse()
-            .withStatus(FORBIDDEN)
-            .withBody(testApiErrorDetailResponseJson))
+          .willReturn(
+            aResponse()
+              .withStatus(FORBIDDEN)
+              .withBody(testApiErrorDetailResponseJson)
+          )
       )
 
       val result = connector.submitRcasp(createRcaspRequest).value.futureValue
