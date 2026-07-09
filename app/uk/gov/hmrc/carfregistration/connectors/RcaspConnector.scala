@@ -23,7 +23,9 @@ import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.carfregistration.connectors.additionalHeaders
-import uk.gov.hmrc.carfregistration.models.requests.CreateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
 import uk.gov.hmrc.carfregistration.models.responses.{SubmitRcaspResponse, ViewRcaspResponse}
 import uk.gov.hmrc.carfregistration.models.{JsonValidationError, *}
 import uk.gov.hmrc.carfregistration.types.ResultT
@@ -43,6 +45,7 @@ class RcaspConnector @Inject() (
     extends Logging {
 
   private val viewRcaspBackendBaseUrl = config.viewRcaspBaseUrl
+  lazy val submitUrl                  = url"${config.submitRcaspBaseUrl}"
 
   def viewRcasps(
       carfId: String,
@@ -69,24 +72,42 @@ class RcaspConnector @Inject() (
     }
   }
 
-  def submitRcasp(request: CreateRcaspRequest)(implicit hc: HeaderCarrier): ResultT[SubmitRcaspResponse] = {
-    val url = url"${config.submitRcaspBaseUrl}"
-    logger.info(s"Calling endpoint: ${url.toString}")
+  def createRcasp(request: CreateRcaspRequest)(implicit hc: HeaderCarrier): ResultT[SubmitRcaspResponse] = {
 
-    val requestBuilder =
-      http
-        .post(url)
-        .withBody(Json.toJson(request))
-        .setHeader(additionalHeaders(config, "submit-rcasp"): _*)
+    val requestBuilder = http.post(submitUrl).withBody(Json.toJson(request))
 
-    sendRequest(url, requestBuilder) { httpResponse =>
+    processMutationRequest(requestBuilder)
+  }
+
+  def updateRcasp(request: UpdateRcaspRequest)(implicit hc: HeaderCarrier): ResultT[SubmitRcaspResponse] = {
+
+    val requestBuilder = http.post(submitUrl).withBody(Json.toJson(request))
+
+    processMutationRequest(requestBuilder)
+  }
+
+  def deleteRcasp(request: DeleteRcaspRequest)(implicit hc: HeaderCarrier): ResultT[SubmitRcaspResponse] = {
+
+    val requestBuilder = http.post(submitUrl).withBody(Json.toJson(request))
+
+    processMutationRequest(requestBuilder)
+  }
+
+  private def processMutationRequest(requestBuilder: RequestBuilder)(implicit hc: HeaderCarrier) = {
+
+    val requestBuilderWithHeaders =
+      requestBuilder.setHeader(
+        additionalHeaders(config, "submit-rcasp"): _*
+      ) // Leave as submit for all as that is the service/api name
+
+    sendRequest(submitUrl, requestBuilderWithHeaders) { httpResponse =>
       Try(httpResponse.json.as[SubmitRcaspResponse]) match {
         case Success(data)      =>
-          logger.debug(s"RCASP submission successful ! Response: ${Json.prettyPrint(Json.toJson(data))}")
+          logger.debug(s"RCASP submit call successful ! Response: ${Json.prettyPrint(Json.toJson(data))}")
           Right(data)
         case Failure(exception) =>
           logger.warn(
-            s"Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
+            s"Error parsing response. Endpoint: <${submitUrl.toURI}> Exception: <${exception.getMessage}>"
           )
           Left(JsonValidationError)
       }

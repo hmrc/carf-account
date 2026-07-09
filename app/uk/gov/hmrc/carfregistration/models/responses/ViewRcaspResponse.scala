@@ -17,65 +17,7 @@
 package uk.gov.hmrc.carfregistration.models.responses
 
 import play.api.libs.json.*
-import uk.gov.hmrc.carfregistration.models.{RcaspAddress, RcaspContactDetails, TinDetails}
-
-sealed trait RcaspDetails {
-  val SubscriptionID: String
-  val RCASPID: String
-  val IsRCASPUser: Boolean
-  val PartyType: String
-  val TINDetails: Option[List[TinDetails]]
-  val AddressDetails: RcaspAddress
-  val PrimaryContactDetails: Option[RcaspContactDetails]
-}
-
-object RcaspDetails {
-
-  implicit val reads: Reads[RcaspDetails] = Reads { json =>
-    (json \ "TradingName").validateOpt[String].flatMap {
-      case Some(_) => json.validate[OrganisationRcaspDetails]
-      case None    => json.validate[IndividualRcaspDetails]
-    }
-  }
-
-  implicit val writes: Writes[RcaspDetails] = {
-    case i: IndividualRcaspDetails   => IndividualRcaspDetails.format.writes(i)
-    case o: OrganisationRcaspDetails => OrganisationRcaspDetails.format.writes(o)
-  }
-}
-
-case class IndividualRcaspDetails(
-    SubscriptionID: String,
-    RCASPID: String,
-    IsRCASPUser: Boolean,
-    PartyType: String,
-    FirstName: String,
-    LastName: String,
-    TINDetails: Option[List[TinDetails]],
-    AddressDetails: RcaspAddress,
-    PrimaryContactDetails: Option[RcaspContactDetails]
-) extends RcaspDetails
-
-object IndividualRcaspDetails {
-  implicit val format: OFormat[IndividualRcaspDetails] = Json.format[IndividualRcaspDetails]
-}
-
-case class OrganisationRcaspDetails(
-    SubscriptionID: String,
-    RCASPID: String,
-    IsRCASPUser: Boolean,
-    PartyType: String,
-    RCASPName: String,
-    TradingName: String,
-    TINDetails: Option[List[TinDetails]],
-    AddressDetails: RcaspAddress,
-    PrimaryContactDetails: Option[RcaspContactDetails],
-    SecondaryContactDetails: Option[RcaspContactDetails]
-) extends RcaspDetails
-
-object OrganisationRcaspDetails {
-  implicit val format: OFormat[OrganisationRcaspDetails] = Json.format[OrganisationRcaspDetails]
-}
+import uk.gov.hmrc.carfregistration.models.viewAndUpdateRcasp.RcaspDetails
 
 case class RcaspResponseDetails(RCASPList: List[RcaspDetails])
 

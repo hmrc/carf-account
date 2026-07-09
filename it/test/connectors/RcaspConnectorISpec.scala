@@ -23,7 +23,10 @@ import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status.*
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.models.requests.{CreateRcaspRequest, IndividualRcaspDetails, RCASPManagementRequest, RcaspCreateRequestCommon}
+import uk.gov.hmrc.carfregistration.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
+import uk.gov.hmrc.carfregistration.models.requests.{RcaspRequestCommon, createRcasp, deleteRcasp, updateRcasp}
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.HeaderCarrier
@@ -56,7 +59,7 @@ class RcaspConnectorISpec
       ResponseCommon = exampleResponseCommon,
       ResponseDetails = RcaspResponseDetails(
         RCASPList = List(
-          OrganisationRcaspDetails(
+          viewAndUpdateRcasp.OrganisationRcaspDetails(
             SubscriptionID = exampleCarfId,
             RCASPID = exampleRcaspId,
             IsRCASPUser = true,
@@ -240,20 +243,20 @@ class RcaspConnectorISpec
     }
   }
 
-  "submitRcasp" should {
-    val testUrl = s"/dac6/SubmitRCASPData/v1"
+  "createRcasp" should {
+    val testUrl = "/dac6/SubmitRCASPData/v1"
 
     val createRcaspRequest: CreateRcaspRequest =
       CreateRcaspRequest(
-        RCASPManagementRequest(
-          RcaspCreateRequestCommon(
+        createRcasp.RcaspManagementRequest(
+          RcaspRequestCommon(
             OriginatingSystem = "MDTP",
             TransmittingSystem = "EIS",
             RequestType = "CREATE",
             Regime = "CARF",
             RequestParameters = None
           ),
-          IndividualRcaspDetails(
+          createRcasp.IndividualRcaspDetails(
             SubscriptionID = "XCARF000000001",
             IsRCASPUser = true,
             PartyType = "Individual",
@@ -323,7 +326,7 @@ class RcaspConnectorISpec
           )
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Right(expectedResponse)
     }
 
@@ -336,7 +339,7 @@ class RcaspConnectorISpec
         mappingBuilder.willReturn(aResponse().withStatus(OK).withBody(""))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(JsonValidationError)
     }
 
@@ -350,7 +353,7 @@ class RcaspConnectorISpec
         mappingBuilder.willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -364,7 +367,7 @@ class RcaspConnectorISpec
         mappingBuilder.willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -383,7 +386,7 @@ class RcaspConnectorISpec
           )
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -393,7 +396,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -403,7 +406,7 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -413,7 +416,337 @@ class RcaspConnectorISpec
           .willReturn(aResponse().withStatus(502))
       )
 
-      val result = connector.submitRcasp(createRcaspRequest).value.futureValue
+      val result = connector.createRcasp(createRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+  }
+
+  "updateRcasp" should {
+    val testUrl = "/dac6/SubmitRCASPData/v1"
+
+    val updateRcaspRequest: UpdateRcaspRequest =
+      UpdateRcaspRequest(
+        updateRcasp.RcaspManagementRequest(
+          RcaspRequestCommon(
+            OriginatingSystem = "MDTP",
+            TransmittingSystem = "EIS",
+            RequestType = "UPDATE",
+            Regime = "CARF",
+            RequestParameters = None
+          ),
+          viewAndUpdateRcasp.IndividualRcaspDetails(
+            RCASPID = "RCASP12345",
+            SubscriptionID = "XCARF000000001",
+            IsRCASPUser = true,
+            PartyType = "Individual",
+            FirstName = "Penny",
+            LastName = "Cassiopeia",
+            TINDetails = Some(
+              List(
+                TinDetails(
+                  TINType = "UTR",
+                  TIN = "6893649",
+                  IssuedBy = "GB"
+                )
+              )
+            ),
+            AddressDetails = RcaspAddress(
+              AddressLine1 = "2 High Street",
+              AddressLine2 = Some("Birmingham"),
+              AddressLine3 = Some("Nowhereshire"),
+              AddressLine4 = Some("Down the road"),
+              PostalCode = "B23 2AZ",
+              CountryCode = "GB"
+            ),
+            PrimaryContactDetails = Some(
+              RcaspContactDetails(
+                ContactName = "Penny Cassiopeia",
+                EmailAddress = "penny.cassiopeia@uva.edu.org",
+                PhoneNumber = Some("07123412345")
+              )
+            )
+          )
+        )
+      )
+
+    val submitStubResponse =
+      """
+        |{
+        |  "ResponseDetails": {
+        |    "ReturnParameters": {
+        |      "Key": "RCASPID",
+        |      "Value": "RCASP12345"
+        |    }
+        |  }
+        |}
+        |""".stripMargin
+
+    "successfully retrieve the API response for a 200 OK" in {
+
+      val expectedResponse = SubmitRcaspResponse(
+        SubmitResponseDetails(
+          SubmitReturnParameters(
+            "RCASPID",
+            "RCASP12345"
+          )
+        )
+      )
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(submitStubResponse)
+          )
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Right(expectedResponse)
+    }
+
+    "return Left JsonValidationError if json is incorrectly formatter" in {
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(OK).withBody(""))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(JsonValidationError)
+    }
+
+    "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(FORBIDDEN)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if UNPROCESSABLE_ENTITY status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if unexpected status code is returned from backend" in {
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(502))
+      )
+
+      val result = connector.updateRcasp(updateRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+  }
+
+  "deleteRcasp" should {
+    val testUrl = "/dac6/SubmitRCASPData/v1"
+
+    val deleteRcaspRequest: DeleteRcaspRequest =
+      DeleteRcaspRequest(
+        deleteRcasp.RcaspManagementRequest(
+          RcaspRequestCommon(
+            OriginatingSystem = "MDTP",
+            TransmittingSystem = "EIS",
+            RequestType = "DELETE",
+            Regime = "CARF",
+            RequestParameters = None
+          ),
+          deleteRcasp.RcaspDetails(
+            RCASPID = "RCASP12345",
+            SubscriptionID = "XCARF000000001"
+          )
+        )
+      )
+
+    val submitStubResponse =
+      """
+        |{
+        |  "ResponseDetails": {
+        |    "ReturnParameters": {
+        |      "Key": "RCASPID",
+        |      "Value": "RCASP12345"
+        |    }
+        |  }
+        |}
+        |""".stripMargin
+
+    "successfully retrieve the API response for a 200 OK" in {
+
+      val expectedResponse = SubmitRcaspResponse(
+        SubmitResponseDetails(
+          SubmitReturnParameters(
+            "RCASPID",
+            "RCASP12345"
+          )
+        )
+      )
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withBody(submitStubResponse)
+          )
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Right(expectedResponse)
+    }
+
+    "return Left JsonValidationError if json is incorrectly formatter" in {
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(OK).withBody(""))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(JsonValidationError)
+    }
+
+    "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder.willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
+
+      val mappingBuilder = addMatchHeaders(
+        post(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(
+            aResponse()
+              .withStatus(FORBIDDEN)
+              .withBody(testApiErrorDetailResponseJson)
+          )
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if UNPROCESSABLE_ENTITY status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if 500 status response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return Left InternalServerError if unexpected status code is returned from backend" in {
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(502))
+      )
+
+      val result = connector.deleteRcasp(deleteRcaspRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
   }
