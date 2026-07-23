@@ -26,7 +26,7 @@ import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
 import uk.gov.hmrc.carfregistration.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
 import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
 import uk.gov.hmrc.carfregistration.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
-import uk.gov.hmrc.carfregistration.models.requests.{RcaspRequestCommon, createRcasp, deleteRcasp, updateRcasp}
+import uk.gov.hmrc.carfregistration.models.requests.{createRcasp, deleteRcasp, updateRcasp, RcaspRequestCommon}
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.http.HeaderCarrier
@@ -182,6 +182,42 @@ class RcaspConnectorISpec
       result mustBe Left(JsonValidationError)
     }
 
+    "return Left NotFoundError if UNPROCESSABLE_ENTITY status response with detail 001 is returned from backend" in {
+      val errorDetailResponseJson: String =
+        """{
+          |  "errorDetail": {
+          |    "errorCode": "422",
+          |    "errorMessage": "No matching records found for the request",
+          |    "source": "Backend",
+          |    "sourceFaultDetail": {
+          |      "detail": [
+          |        "001 - No matching records found for the request"
+          |      ]
+          |    },
+          |    "timestamp": "2020-09-25T21:54:12.015Z",
+          |    "correlationId": "1ae81b45-41b4-4642-ae1c-db1126900001"
+          |  }
+          |}""".stripMargin
+
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(errorDetailResponseJson))
+      )
+
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
+      result mustBe Left(NotFoundError)
+    }
+
+    "return Left InternalServerError if some other UNPROCESSABLE_ENTITY status response is returned from backend" in {
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
+      )
+
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
     "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
       stubFor(
         get(urlPathMatching(testUrl))
@@ -206,16 +242,6 @@ class RcaspConnectorISpec
       stubFor(
         get(urlPathMatching(testUrl))
           .willReturn(aResponse().withStatus(FORBIDDEN).withBody(testApiErrorDetailResponseJson))
-      )
-
-      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
-      result mustBe Left(InternalServerError)
-    }
-
-    "return Left InternalServerError if UNPROCESSABLE_ENTITY status response is returned from backend" in {
-      stubFor(
-        get(urlPathMatching(testUrl))
-          .willReturn(aResponse().withStatus(UNPROCESSABLE_ENTITY).withBody(testApiErrorDetailResponseJson))
       )
 
       val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue

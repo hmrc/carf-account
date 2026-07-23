@@ -22,6 +22,7 @@ import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
+import uk.gov.hmrc.carfregistration.models.NotFoundError
 import uk.gov.hmrc.carfregistration.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
 import uk.gov.hmrc.carfregistration.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
 import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
@@ -40,9 +41,10 @@ class RcaspController @Inject() (
     with Logging {
 
   def viewRcasp(carfId: String, rcaspId: String): Action[AnyContent] = authorise.async { implicit request =>
-    rcaspConnector.viewRcasps(carfId, rcaspId).value.flatMap {
-      case Right(response) => Future.successful(Ok(Json.toJson(response)))
-      case Left(_)         => Future.successful(InternalServerError("Unexpected error"))
+    rcaspConnector.viewRcasps(carfId, rcaspId).value.map {
+      case Right(response)     => Ok(Json.toJson(response))
+      case Left(NotFoundError) => NotFound("No RCASPs found")
+      case Left(_)             => InternalServerError("Unexpected error")
     }
   }
 

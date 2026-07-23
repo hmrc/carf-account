@@ -58,17 +58,31 @@ class RcaspConnector @Inject() (
       .get(url)
       .setHeader(additionalHeaders(config, "view-rcasp"): _*)
 
-    sendRequest(url, requestBuilder) { httpResponse =>
-      Try(httpResponse.json.as[ViewRcaspResponse]) match {
-        case Success(data)      =>
-          logger.info(s"View RCASP success! Response: ${Json.prettyPrint(Json.toJson(data))}")
-          Right(data)
-        case Failure(exception) =>
-          logger.warn(
-            s"Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
-          )
-          Left(JsonValidationError)
-      }
+    ResultT.fromFuture {
+      requestBuilder
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK                                                                                         =>
+              Try(httpResponse.json.as[ViewRcaspResponse]) match {
+                case Success(data)      =>
+                  logger.info(s"View RCASP success! Response: ${Json.prettyPrint(Json.toJson(data))}")
+                  Right(data)
+                case Failure(exception) =>
+                  logger.warn(
+                    s"Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
+                  )
+                  Left(JsonValidationError)
+              }
+            case UNPROCESSABLE_ENTITY                                                                       =>
+              Left(ErrorDetailsHandler.errorParseForViewRcasp422(httpResponse, url))
+            case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE | FORBIDDEN | METHOD_NOT_ALLOWED =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, url))
+            case _                                                                                          =>
+              logger.warn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}")
+              Left(InternalServerError)
+          }
+        }
     }
   }
 

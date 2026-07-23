@@ -17,7 +17,7 @@
 package uk.gov.hmrc.carfregistration.utils
 
 import play.api.Logging
-import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError}
+import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HttpResponse
 
 import java.net.URL
@@ -28,6 +28,24 @@ object ErrorDetailsHandler extends Logging {
   def errorParse(response: HttpResponse, endpoint: URL): ApiError =
     logger.warn(s"Status code: ${response.status} from endpoint: ${endpoint.toURI}")
     Try(response.json.as[ErrorDetail]) match {
+      case Success(error)     =>
+        logger.warn(
+          s"Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
+        )
+        InternalServerError
+      case Failure(exception) =>
+        logger.warn(
+          s"Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
+        )
+        JsonValidationError
+    }
+
+  def errorParseForViewRcasp422(response: HttpResponse, endpoint: URL): ApiError =
+    Try(response.json.as[ErrorDetail]) match {
+      case Success(error)
+          if error.errorDetail.sourceFaultDetail.flatMap(_.detail.headOption).forall(_.trim.startsWith("001")) =>
+        logger.info("UnprocessableEntity from View RCASP with detail 001. No RCASPs found.")
+        NotFoundError
       case Success(error)     =>
         logger.warn(
           s"Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"

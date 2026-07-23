@@ -102,11 +102,7 @@ class RcaspControllerSpec extends SpecBase {
     "viewRcasp" - {
       "must return success response when the connector successfully sends GET request" in {
         when(mockConnector.viewRcasps(any(), any())(any()))
-          .thenReturn(
-            EitherT.rightT[Future, ApiError](
-              testViewRcaspResponse
-            )
-          )
+          .thenReturn(EitherT.rightT[Future, ApiError](testViewRcaspResponse))
 
         val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
 
@@ -114,8 +110,17 @@ class RcaspControllerSpec extends SpecBase {
         contentAsString(result) mustBe testViewRcaspResponseJson
       }
 
-      "must return internal server error when connector returns" - {
+      "must return a NotFound when the connector returns NotFoundError" in {
+        when(mockConnector.viewRcasps(any(), any())(any()))
+          .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](NotFoundError))
 
+        val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
+
+        status(result)        mustBe NOT_FOUND
+        contentAsString(result) must include("No RCASPs found")
+      }
+
+      "must return internal server error when connector returns" - {
         "InternalServerError" in {
           when(mockConnector.viewRcasps(any(), any())(any()))
             .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](InternalServerError))
@@ -135,7 +140,6 @@ class RcaspControllerSpec extends SpecBase {
           status(result)        mustBe INTERNAL_SERVER_ERROR
           contentAsString(result) must include("Unexpected error")
         }
-
       }
     }
 
