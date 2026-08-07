@@ -19,9 +19,9 @@ package uk.gov.hmrc.carfregistration
 import uk.gov.hmrc.carfregistration.config.AppConfig
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HeaderNames}
 
-import java.time.ZonedDateTime
+import java.time.{ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.{Locale, UUID}
 
 package object connectors {
 
@@ -43,8 +43,10 @@ package object connectors {
       eisEnvironment: String
   )(implicit headerCarrier: HeaderCarrier): Seq[(String, String)] = {
 
-    // HTTP-date format defined by RFC 7231 e.g. Fri, 01 Aug 2020 15:51:38 GMT+1
-    val formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O")
+    // HTTP-date format defined by RFC 7231 e.g. Fri, 01 Aug 2020 15:51:38 GMT
+    val formatter = DateTimeFormatter
+      .ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.ENGLISH)
+      .withZone(ZoneOffset.UTC)
 
     Seq(
       "x-forwarded-host"  -> "mdtp",
