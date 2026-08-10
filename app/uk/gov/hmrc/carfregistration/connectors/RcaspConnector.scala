@@ -66,7 +66,7 @@ class RcaspConnector @Inject() (
             case OK                                                                                         =>
               Try(httpResponse.json.as[ViewRcaspResponse]) match {
                 case Success(data)      =>
-                  logger.info(s"View RCASP success! Response: ${Json.prettyPrint(Json.toJson(data))}")
+                  logger.info(s"View RCASP success!")
                   Right(data)
                 case Failure(exception) =>
                   logger.warn(
