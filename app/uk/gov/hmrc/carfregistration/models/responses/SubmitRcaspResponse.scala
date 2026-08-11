@@ -18,7 +18,7 @@ package uk.gov.hmrc.carfregistration.models.responses
 
 import play.api.libs.json.{Json, OFormat}
 
-case class SubmitRcaspResponse(ResponseDetails: SubmitResponseDetails)
+case class SubmitRcaspResponse(ResponseDetails: Option[SubmitResponseDetails])
 
 case class SubmitResponseDetails(ReturnParameters: SubmitReturnParameters)
 

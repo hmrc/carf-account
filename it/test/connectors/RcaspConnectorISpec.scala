@@ -331,10 +331,12 @@ class RcaspConnectorISpec
     "successfully retrieve the API response for a 200 OK" in {
 
       val expectedResponse = SubmitRcaspResponse(
-        SubmitResponseDetails(
-          SubmitReturnParameters(
-            "RCASPID",
-            "RCASP12345"
+        ResponseDetails = Some(
+          SubmitResponseDetails(
+            SubmitReturnParameters(
+              "RCASPID",
+              "RCASP12345"
+            )
           )
         )
       )
@@ -495,28 +497,11 @@ class RcaspConnectorISpec
         )
       )
 
-    val submitStubResponse =
-      """
-        |{
-        |  "ResponseDetails": {
-        |    "ReturnParameters": {
-        |      "Key": "RCASPID",
-        |      "Value": "RCASP12345"
-        |    }
-        |  }
-        |}
-        |""".stripMargin
+    val submitStubResponse = "{}"
 
     "successfully retrieve the API response for a 200 OK" in {
 
-      val expectedResponse = SubmitRcaspResponse(
-        SubmitResponseDetails(
-          SubmitReturnParameters(
-            "RCASPID",
-            "RCASP12345"
-          )
-        )
-      )
+      val expectedResponse = SubmitRcaspResponse(ResponseDetails = None)
 
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(testUrl))
@@ -646,28 +631,11 @@ class RcaspConnectorISpec
         )
       )
 
-    val submitStubResponse =
-      """
-        |{
-        |  "ResponseDetails": {
-        |    "ReturnParameters": {
-        |      "Key": "RCASPID",
-        |      "Value": "RCASP12345"
-        |    }
-        |  }
-        |}
-        |""".stripMargin
+    val submitStubResponse = "{}"
 
     "successfully retrieve the API response for a 200 OK" in {
 
-      val expectedResponse = SubmitRcaspResponse(
-        SubmitResponseDetails(
-          SubmitReturnParameters(
-            "RCASPID",
-            "RCASP12345"
-          )
-        )
-      )
+      val expectedResponse = SubmitRcaspResponse(ResponseDetails = None)
 
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(testUrl))

@@ -87,16 +87,20 @@ class RcaspControllerSpec extends SpecBase {
   }
 
   "RcaspController" - {
-    val testSubmitResponseBody = SubmitRcaspResponse(
-      SubmitResponseDetails(
-        SubmitReturnParameters(
-          "RCASPID",
-          "RCASP12345"
+    val testCreateResponseBody = SubmitRcaspResponse(
+      ResponseDetails = Some(
+        SubmitResponseDetails(
+          SubmitReturnParameters(
+            "RCASPID",
+            "RCASP12345"
+          )
         )
       )
     )
 
-    val expectedSubmitResponse =
+    val testUpdateDeleteResponseBody = SubmitRcaspResponse(ResponseDetails = None)
+
+    val expectedCreateResponse =
       """{"ResponseDetails":{"ReturnParameters":{"Key":"RCASPID","Value":"RCASP12345"}}}"""
 
     "viewRcasp" - {
@@ -198,16 +202,17 @@ class RcaspControllerSpec extends SpecBase {
              |
              |""".stripMargin
         )
+
       "must return success when the connector returns a submit rcasp response" in {
         when(mockConnector.createRcasp(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, ApiError](testSubmitResponseBody)
+            EitherT.rightT[Future, ApiError](testCreateResponseBody)
           )
 
         val result = testController.createRcasp()(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
 
         status(result)          mustBe OK
-        contentAsString(result) mustBe expectedSubmitResponse
+        contentAsString(result) mustBe expectedCreateResponse
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
@@ -299,16 +304,17 @@ class RcaspControllerSpec extends SpecBase {
            |}
            |""".stripMargin
       )
+
       "must return success when the connector returns a submit rcasp response" in {
         when(mockConnector.updateRcasp(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, ApiError](testSubmitResponseBody)
+            EitherT.rightT[Future, ApiError](testUpdateDeleteResponseBody)
           )
 
         val result = testController.updateRcasp()(fakeRequestWithJsonBody(updateRequest))
 
         status(result)          mustBe OK
-        contentAsString(result) mustBe expectedSubmitResponse
+        contentAsString(result) mustBe "{}"
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
@@ -370,16 +376,17 @@ class RcaspControllerSpec extends SpecBase {
            |}
            |""".stripMargin
       )
+
       "must return success when the connector returns a submit rcasp response" in {
         when(mockConnector.deleteRcasp(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, ApiError](testSubmitResponseBody)
+            EitherT.rightT[Future, ApiError](testUpdateDeleteResponseBody)
           )
 
         val result = testController.deleteRcasp()(fakeRequestWithJsonBody(deleteRequest))
 
         status(result)          mustBe OK
-        contentAsString(result) mustBe expectedSubmitResponse
+        contentAsString(result) mustBe "{}"
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
