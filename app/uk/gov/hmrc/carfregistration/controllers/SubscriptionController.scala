@@ -55,7 +55,7 @@ class SubscriptionController @Inject() (
       )
   }
 
-  def updateSubscription: Action[JsValue] = authorise(parse.json).async { implicit request =>
+  def updateSubscription(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     request.body
       .validate[SubscriptionRequest]
       .fold(

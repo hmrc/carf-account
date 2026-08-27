@@ -16,7 +16,7 @@
 
 package actions
 
-import play.api.mvc.{PlayBodyParsers, Request, Result}
+import play.api.mvc.{AnyContent, BodyParser, PlayBodyParsers, Request, Result}
 import uk.gov.hmrc.auth.core.AffinityGroup
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
@@ -27,12 +27,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class FakeAuthAction(
     bodyParsers: PlayBodyParsers,
-    testCredId: String = "cred-123",
-    testAffinityGroup: AffinityGroup = Organisation,
-    testNino: Option[String] = Some("AB123456C")
+    testAffinityGroup: AffinityGroup = Organisation
 ) extends AuthAction {
 
-  override def parser = bodyParsers.default
+  override def parser: BodyParser[AnyContent] = bodyParsers.default
 
   override def invokeBlock[A](request: Request[A], block: AuthenticatedRequest[A] => Future[Result]): Future[Result] =
     block(

@@ -54,13 +54,13 @@ class RcaspController @Inject() (
     }
   }
 
-  def updateRcasp: Action[JsValue] = authorise(parse.json).async { implicit request =>
+  def updateRcasp(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     processRcaspRequest("Update", request.body.validate[UpdateRcaspRequest]) { request =>
       rcaspConnector.updateRcasp(request)
     }
   }
 
-  def deleteRcasp: Action[JsValue] = authorise(parse.json).async { implicit request =>
+  def deleteRcasp(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     processRcaspRequest("Delete", request.body.validate[DeleteRcaspRequest]) { request =>
       rcaspConnector.deleteRcasp(request)
     }

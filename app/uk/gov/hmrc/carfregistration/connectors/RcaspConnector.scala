@@ -45,7 +45,7 @@ class RcaspConnector @Inject() (
     extends Logging {
 
   private val viewRcaspBackendBaseUrl = config.viewRcaspBaseUrl
-  lazy val submitUrl                  = url"${config.submitRcaspBaseUrl}"
+  private lazy val submitUrl          = url"${config.submitRcaspBaseUrl}"
 
   def viewRcasps(
       carfId: String,
