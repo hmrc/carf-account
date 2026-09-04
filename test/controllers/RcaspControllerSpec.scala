@@ -25,7 +25,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, InternalServerError}
 import play.api.test.Helpers.{contentAsString, status}
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.controllers.RcaspController
+import uk.gov.hmrc.carfregistration.controllers.management.RcaspController
 import uk.gov.hmrc.carfregistration.models.responses.*
 import uk.gov.hmrc.carfregistration.models.*
 

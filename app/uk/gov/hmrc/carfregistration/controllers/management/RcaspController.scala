@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.carfregistration.controllers
+package uk.gov.hmrc.carfregistration.controllers.management
 
 import com.google.inject.Inject
 import play.api.Logging
