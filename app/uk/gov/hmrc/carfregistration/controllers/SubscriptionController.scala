@@ -71,19 +71,19 @@ class SubscriptionController @Inject() (
               logger.warn(s"Error sending updated subscription information: $apiError")
               maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
                 errorDetail =>
-                  Status(INTERNAL_SERVER_ERROR)(Json.toJson(errorDetail))
+                  InternalServerError(Json.toJson(errorDetail))
               }
           }
       )
   }
 
   def displaySubscription(carfId: String): Action[AnyContent] = authorise.async { implicit request =>
-    subscriptionConnector.displaySubscriptionInformation(carfId).value.flatMap {
-      case Right(response)     => Future.successful(Ok(Json.toJson(response)))
+    subscriptionConnector.displaySubscriptionInformation(carfId).value.map {
+      case Right(response)     => Ok(Json.toJson(response))
       case Left(NotFoundError) =>
-        Future.successful(NotFound("Could not find a subscription record for this user"))
+        NotFound("Could not find a subscription record for this user")
       case Left(_)             =>
-        Future.successful(InternalServerError("Unexpected error"))
+        InternalServerError("Unexpected error")
     }
   }
 

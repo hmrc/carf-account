@@ -168,7 +168,7 @@ class RcaspConnectorISpec
       result mustBe Right(testViewRcaspResponse)
     }
 
-    "return Left JsonValidationError if json is incorrectly formatter" in {
+    "return Left JsonValidationError if json is incorrectly formatted" in {
       val mappingBuilder = addMatchHeaders(
         get(urlPathMatching(testUrl))
       )
@@ -216,6 +216,24 @@ class RcaspConnectorISpec
 
       val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
       result mustBe Left(InternalServerError)
+    }
+
+    "return Left JsonValidationError if UNPROCESSABLE_ENTITY is returned from backend but error response cannot be parsed" in {
+      stubFor(
+        get(urlPathMatching(testUrl))
+          .willReturn(
+            aResponse()
+              .withStatus(UNPROCESSABLE_ENTITY)
+              .withBody("""{
+                          |  "errorDetail": {
+                          |    "errorMessage": "Invalid json",
+                          |  }
+                          |}""".stripMargin)
+          )
+      )
+
+      val result = connector.viewRcasps(exampleCarfId, exampleRcaspId).value.futureValue
+      result mustBe Left(JsonValidationError)
     }
 
     "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
@@ -358,7 +376,7 @@ class RcaspConnectorISpec
       result mustBe Right(expectedResponse)
     }
 
-    "return Left JsonValidationError if json is incorrectly formatter" in {
+    "return Left JsonValidationError if json is incorrectly formatted" in {
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(testUrl))
       )
@@ -520,7 +538,7 @@ class RcaspConnectorISpec
       result mustBe Right(expectedResponse)
     }
 
-    "return Left JsonValidationError if json is incorrectly formatter" in {
+    "return Left JsonValidationError if json is incorrectly formatted" in {
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(testUrl))
       )
@@ -654,7 +672,7 @@ class RcaspConnectorISpec
       result mustBe Right(expectedResponse)
     }
 
-    "return Left JsonValidationError if json is incorrectly formatter" in {
+    "return Left JsonValidationError if json is incorrectly formatted" in {
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(testUrl))
       )

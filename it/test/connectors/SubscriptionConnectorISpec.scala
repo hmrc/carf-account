@@ -334,7 +334,7 @@ class SubscriptionConnectorISpec
     }
   }
 
-  "retrieveSubscriptionInformation" should {
+  "displaySubscriptionInformation" should {
 
     val testUrl = s"/dac6/ViewCarfSubscription/v1/.*"
 
@@ -351,6 +351,20 @@ class SubscriptionConnectorISpec
 
       val result = connector.displaySubscriptionInformation(exampleCarfReference).value.futureValue
       result mustBe Right(testSubscriptionDisplayResponse)
+    }
+
+    "return Left JsonValidationError if json is incorrectly formatted" in {
+      val mappingBuilder = addMatchHeaders(
+        get(urlPathMatching(testUrl))
+      )
+
+      stubFor(
+        mappingBuilder
+          .willReturn(aResponse().withStatus(OK).withBody(""))
+      )
+
+      val result = connector.displaySubscriptionInformation(exampleCarfReference).value.futureValue
+      result mustBe Left(JsonValidationError)
     }
 
     "return Left NotFoundError if NOT_FOUND status response is returned from backend" in {

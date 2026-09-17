@@ -18,17 +18,17 @@ package controllers
 
 import base.SpecBase
 import cats.data.EitherT
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, when}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.{reset, times, verify, when}
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Results.BadRequest
-import play.api.test.Helpers.{contentAsString, status}
+import play.api.test.Helpers.{contentAsJson, contentAsString, status}
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfregistration.controllers.SubscriptionController
+import uk.gov.hmrc.carfregistration.models.*
 import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
-import uk.gov.hmrc.carfregistration.models.{ErrorDetail, ErrorDetails, Individual, InternalServerError}
-import uk.gov.hmrc.carfregistration.models.ApiError
+import uk.gov.hmrc.carfregistration.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
+import uk.gov.hmrc.carfregistration.types.ResultT
 import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.Future
@@ -66,6 +66,8 @@ class SubscriptionControllerSpec extends SpecBase {
       |  }
       |}""".stripMargin
 
+  private val testCarfId: String = "XCARF1234567890"
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
@@ -85,6 +87,8 @@ class SubscriptionControllerSpec extends SpecBase {
 
         status(result)          mustBe OK
         contentAsString(result) mustBe testSuccessResponseBody
+
+        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
       }
 
       "must return internal server error when the connector returns SERVICE_UNAVAILABLE (connector converts to Left)" in {
@@ -95,6 +99,8 @@ class SubscriptionControllerSpec extends SpecBase {
 
         status(result)        mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) must include("Error sending subscription information")
+
+        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
       }
 
       "must return unprocessable entity with already_registered status when error code returned is 007" in {
@@ -112,6 +118,8 @@ class SubscriptionControllerSpec extends SpecBase {
 
         status(result)        mustBe UNPROCESSABLE_ENTITY
         contentAsString(result) must include("already_registered")
+
+        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
       }
 
       "must return unprocessable entity 422 with 'Invalid ID type' message when error code returned is 015" in {
@@ -134,11 +142,14 @@ class SubscriptionControllerSpec extends SpecBase {
       "must return bad request when the request body is not valid JSON" in {
         val result = testController.createSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
-        result.toString mustBe Future.successful(BadRequest("")).toString
+        status(result)        mustBe BAD_REQUEST
+        contentAsString(result) must include("SubscriptionRequest is invalid")
+
+        verify(mockConnector, times(0)).sendSubscriptionInformation(any())(any())
       }
     }
 
-    "update Subscription" - {
+    "updateSubscription" - {
       "must return success response when the connector successfully sends subscription information" in {
         when(mockConnector.updateSubscription(any())(any()))
           .thenReturn(
@@ -151,10 +162,11 @@ class SubscriptionControllerSpec extends SpecBase {
 
         status(result)          mustBe OK
         contentAsString(result) mustBe testSuccessResponseBody
+
+        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
       }
 
-      "must return internal server error when the connector returns an error status code" in {
-
+      "must return internal server error when the connector returns InternalServerError with ErrorDetail" in {
         val errorDetail = ErrorDetail(
           errorDetail = ErrorDetails(
             "2026-05-11T21:54:12.015Z",
@@ -175,12 +187,92 @@ class SubscriptionControllerSpec extends SpecBase {
 
         contentAsString(result) must include("Service Unavailable")
         contentAsString(result) must include("correlationId")
+
+        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+      }
+
+      "must return internal server error when the connector returns InternalServerError without ErrorDetail" in {
+        when(mockConnector.updateSubscription(any())(any()))
+          .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, None)))
+
+        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Error sending updated subscription information")
+
+        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
       }
 
       "must return bad request when the request body is not valid JSON" in {
         val result = testController.updateSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
-        result.toString mustBe Future.successful(BadRequest("")).toString
+        status(result)        mustBe BAD_REQUEST
+        contentAsString(result) must include("Update Subscription Request's Json is invalid")
+
+        verify(mockConnector, times(0)).updateSubscription(any())(any())
+      }
+    }
+
+    "displaySubscription" - {
+      "must return OK with SubscriptionDisplayResponse in json when the connector successfully returns subscription information" in {
+        val testSubscriptionDisplayResponse = SubscriptionDisplayResponse(
+          success = SubscriptionDisplaySuccess(
+            processingDate = "2024-01-25T09:26:17Z",
+            carfSubscriptionDetails = CarfSubscriptionDetails(
+              carfReference = testCarfId,
+              tradingName = Some("CARF LTD"),
+              gbUser = true,
+              primaryContact = testContact,
+              secondaryContact = None
+            )
+          )
+        )
+
+        when(mockConnector.displaySubscriptionInformation(any())(any()))
+          .thenReturn(ResultT.fromValue(testSubscriptionDisplayResponse))
+
+        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+
+        status(result)        mustBe OK
+        contentAsJson(result) mustBe Json.toJson(testSubscriptionDisplayResponse)
+
+        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+      }
+
+      "must return NotFound when the connector returns NotFoundError" in {
+        when(mockConnector.displaySubscriptionInformation(any())(any()))
+          .thenReturn(ResultT.fromError(NotFoundError))
+
+        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+
+        status(result)        mustBe NOT_FOUND
+        contentAsString(result) must include("Could not find a subscription record for this user")
+
+        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+      }
+
+      "must return InternalServerError when the connector returns InternalServerError" in {
+        when(mockConnector.displaySubscriptionInformation(any())(any()))
+          .thenReturn(ResultT.fromError(InternalServerError))
+
+        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Unexpected error")
+
+        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+      }
+
+      "must return InternalServerError when the connector returns JsonValidationError" in {
+        when(mockConnector.displaySubscriptionInformation(any())(any()))
+          .thenReturn(ResultT.fromError(JsonValidationError))
+
+        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+
+        status(result)        mustBe INTERNAL_SERVER_ERROR
+        contentAsString(result) must include("Unexpected error")
+
+        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
       }
     }
   }

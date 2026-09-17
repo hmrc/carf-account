@@ -361,6 +361,18 @@ class RegistrationConnectorISpec
       val result = connector.individualWithId(testRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
+
+    "return InternalServerError if some other response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_GATEWAY)
+          )
+      )
+      val result = connector.individualWithId(testRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
   }
 
   "registerWithoutId" should {
@@ -623,7 +635,7 @@ class RegistrationConnectorISpec
               .withBody(testApiErrorDetailResponseJson)
           )
       )
-      val result = connector.individualWithId(testRequest).value.futureValue
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -636,7 +648,7 @@ class RegistrationConnectorISpec
               .withBody(Json.toJson("test_body").toString)
           )
       )
-      val result = connector.individualWithId(testRequest).value.futureValue
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
       result mustBe Left(NotFoundError)
     }
 
@@ -649,7 +661,7 @@ class RegistrationConnectorISpec
               .withBody(testApiErrorDetailResponseJson)
           )
       )
-      val result = connector.individualWithId(testRequest).value.futureValue
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -662,7 +674,7 @@ class RegistrationConnectorISpec
               .withBody(testApiErrorDetailResponseJson)
           )
       )
-      val result = connector.individualWithId(testRequest).value.futureValue
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
 
@@ -675,7 +687,19 @@ class RegistrationConnectorISpec
               .withBody(testApiErrorDetailResponseJson)
           )
       )
-      val result = connector.individualWithId(testRequest).value.futureValue
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
+      result mustBe Left(InternalServerError)
+    }
+
+    "return InternalServerError if some other response is returned from backend" in {
+      stubFor(
+        post(urlPathMatching("/dac6/dprs0102/v1"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_GATEWAY)
+          )
+      )
+      val result = connector.organisationWithID(testOrganisationApiRequest).value.futureValue
       result mustBe Left(InternalServerError)
     }
   }
