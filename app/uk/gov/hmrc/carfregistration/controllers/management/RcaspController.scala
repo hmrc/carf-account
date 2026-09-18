@@ -17,7 +17,6 @@
 package uk.gov.hmrc.carfregistration.controllers.management
 
 import com.google.inject.Inject
-import play.api.Logging
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
@@ -29,6 +28,7 @@ import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as 
 import uk.gov.hmrc.carfregistration.models.responses.SubmitRcaspResponse
 import uk.gov.hmrc.carfregistration.types.ResultT
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,8 +37,7 @@ class RcaspController @Inject() (
     authorise: AuthAction,
     rcaspConnector: RcaspConnector
 )(implicit ec: ExecutionContext)
-    extends BackendController(cc)
-    with Logging {
+    extends BackendController(cc) {
 
   def viewRcasp(carfId: String, rcaspId: String): Action[AnyContent] = authorise.async { implicit request =>
     rcaspConnector.viewRcasps(carfId, rcaspId).value.map {
@@ -78,7 +77,7 @@ class RcaspController @Inject() (
             case Right(submitResponse) =>
               Ok(Json.toJson(submitResponse))
             case Left(apiError)        =>
-              logger.warn(s"Error sending rcasp ${action.toLowerCase} information: $apiError")
+              logWarn(s"Error sending rcasp ${action.toLowerCase} information: $apiError")
               InternalServerError(s"Error sending rcasp ${action.toLowerCase} information")
           }
       )

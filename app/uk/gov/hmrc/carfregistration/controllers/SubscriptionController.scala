@@ -17,7 +17,6 @@
 package uk.gov.hmrc.carfregistration.controllers
 
 import com.google.inject.Inject
-import play.api.Logging
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
@@ -25,6 +24,7 @@ import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
 import uk.gov.hmrc.carfregistration.models.NotFoundError
 import uk.gov.hmrc.carfregistration.models.requests.SubscriptionRequest
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,8 +33,7 @@ class SubscriptionController @Inject() (
     authorise: AuthAction,
     subscriptionConnector: SubscriptionConnector
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(cc)
-    with Logging {
+    extends BackendController(cc) {
 
   def createSubscription: Action[JsValue] = authorise(parse.json).async { implicit request =>
     request.body
@@ -49,7 +48,7 @@ class SubscriptionController @Inject() (
             case Right(httpResponse) =>
               Status(httpResponse.status)(httpResponse.body)
             case Left(apiError)      =>
-              logger.warn(s"Error sending subscription information: $apiError")
+              logWarn(s"Error sending subscription information: $apiError")
               InternalServerError("Error sending subscription information")
           }
       )
@@ -68,7 +67,7 @@ class SubscriptionController @Inject() (
             case Right(httpResponse)                =>
               Ok(httpResponse.body)
             case Left((apiError, maybeErrorDetail)) =>
-              logger.warn(s"Error sending updated subscription information: $apiError")
+              logWarn(s"Error sending updated subscription information: $apiError")
               maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
                 errorDetail =>
                   InternalServerError(Json.toJson(errorDetail))

@@ -18,7 +18,6 @@ package uk.gov.hmrc.carfregistration.connectors
 
 import cats.data.EitherT
 import com.google.inject.Inject
-import play.api.Logging
 import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -32,6 +31,7 @@ import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,8 +40,7 @@ import scala.util.{Failure, Success, Try}
 class SubscriptionConnector @Inject() (
     config: AppConfig,
     http: HttpClientV2
-)(implicit ec: ExecutionContext)
-    extends Logging {
+)(implicit ec: ExecutionContext) {
 
   private val createSubscriptionBackendBaseUrl  = config.createSubscriptionBaseUrl
   private val displaySubscriptionBackendBaseUrl = config.displaySubscriptionBaseUrl
@@ -60,7 +59,7 @@ class SubscriptionConnector @Inject() (
   private def createSubscription(request: SubscriptionRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
   ): ResultT[HttpResponse] = {
-    logger.info(s"Calling endpoint: ${endpoint.toString}")
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
 
     EitherT {
       http
@@ -76,7 +75,7 @@ class SubscriptionConnector @Inject() (
               logDownStreamError(httpResponse.status, httpResponse.body)
               isAlreadyRegistered(httpResponse.body) match {
                 case Some(json) =>
-                  logger.warn(s"Already registered. ${httpResponse.status} response status")
+                  logWarn(s"Already registered. ${httpResponse.status} response status")
                   Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json)))
                 case None       =>
                   Right(httpResponse)
@@ -84,7 +83,7 @@ class SubscriptionConnector @Inject() (
             case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case status                                                    =>
-              logger.warn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
               logDownStreamError(status, httpResponse.body)
               Left(InternalServerError)
           }
@@ -98,7 +97,7 @@ class SubscriptionConnector @Inject() (
 
     val endpoint = url"$updateSubscriptionBackendBaseUrl"
 
-    logger.info(s"Calling endpoint: ${endpoint.toString}")
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
 
     EitherT {
       http
@@ -111,7 +110,7 @@ class SubscriptionConnector @Inject() (
             case OK     =>
               Right(httpResponse)
             case status =>
-              logger.warn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
               Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
           }
         }
@@ -121,7 +120,7 @@ class SubscriptionConnector @Inject() (
   private def displaySubscription(endpoint: URL)(implicit
       hc: HeaderCarrier
   ): ResultT[SubscriptionDisplayResponse] = {
-    logger.info(s"Calling endpoint: ${endpoint.toString}")
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
     EitherT {
       http
         .get(endpoint)
@@ -132,10 +131,10 @@ class SubscriptionConnector @Inject() (
             case OK                                                                               =>
               Try(httpResponse.json.as[SubscriptionDisplayResponse]) match {
                 case Success(data)      =>
-                  logger.info(s"Display subscription success")
+                  logInfo(s"Display subscription success")
                   Right(data)
                 case Failure(exception) =>
-                  logger.warn(
+                  logWarnThrow(
                     s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -144,12 +143,12 @@ class SubscriptionConnector @Inject() (
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case NOT_FOUND                                                                        =>
-              logger.warn(
+              logWarn(
                 s"No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logger.warn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }
@@ -160,12 +159,12 @@ class SubscriptionConnector @Inject() (
     val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
       case Success(JsSuccess(errorDetailBody, _)) =>
-        logger.warn(
+        logWarn(
           s"Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
         )
         Some(errorDetailBody)
       case _                                      =>
-        logger.warn(s"Error with submission: $status: response is not valid JSON")
+        logWarn(s"Error with submission: $status: response is not valid JSON")
         None
     }
   }

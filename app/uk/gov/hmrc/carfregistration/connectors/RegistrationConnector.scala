@@ -18,7 +18,6 @@ package uk.gov.hmrc.carfregistration.connectors
 
 import cats.data.EitherT
 import com.google.inject.Inject
-import play.api.Logging
 import play.api.http.Status.*
 import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -30,6 +29,7 @@ import uk.gov.hmrc.carfregistration.utils.ErrorDetailsHandler
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +37,7 @@ import scala.util.{Failure, Success, Try}
 
 class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClientV2)(implicit
     ec: ExecutionContext
-) extends Logging {
+) {
 
   private val backendBaseUrl = config.registerWithIdBaseUrl
 
@@ -65,10 +65,10 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
-                  logger.debug(s"Register organisation with ID Success! Response: $data")
+                  logDebug(s"Register organisation with ID Success! Response: $data")
                   Right(data)
                 case Failure(exception) =>
-                  logger.warn(
+                  logWarn(
                     s"Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
@@ -76,12 +76,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
-              logger.warn(
+              logWarn(
                 s"No match could be found for this organisation: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }
@@ -102,10 +102,10 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
-                  logger.debug(s"Register individual with ID Success")
+                  logDebug(s"Register individual with ID Success")
                   Right(data)
                 case Failure(exception) =>
-                  logger.warn(
+                  logWarnThrow(
                     s"Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -114,12 +114,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
-              logger.warn(
+              logWarn(
                 s"No match could be found for this user: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }
@@ -130,7 +130,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
   )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, RegWithoutIdApiResponse] =
     EitherT {
       val endpoint: URL = url"${config.registerWithoutIdBaseUrl}"
-      logger.info(s"[RegistrationConnector] Calling registerWithoutId API with endpoint: ${endpoint.toURI}")
+      logInfo(s"[RegistrationConnector] Calling registerWithoutId API with endpoint: ${endpoint.toURI}")
       http
         .post(endpoint)
         .withBody(Json.toJson(request))
@@ -141,10 +141,10 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithoutIdApiResponse]) match {
                 case Success(response)  =>
-                  logger.debug(s"Register without ID Success")
+                  logDebug(s"Register without ID Success")
                   Right(response)
                 case Failure(exception) =>
-                  logger.warn(
+                  logWarnThrow(
                     s"Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -153,7 +153,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case _                                                                                =>
-              logger.warn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+              logWarn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }

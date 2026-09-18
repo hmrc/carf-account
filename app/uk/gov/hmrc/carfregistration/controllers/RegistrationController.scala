@@ -17,7 +17,6 @@
 package uk.gov.hmrc.carfregistration.controllers
 
 import com.google.inject.Inject
-import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
@@ -25,6 +24,7 @@ import uk.gov.hmrc.carfregistration.models.requests.*
 import uk.gov.hmrc.carfregistration.models.{ApiError, NotFoundError}
 import uk.gov.hmrc.carfregistration.services.RegistrationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,8 +33,7 @@ class RegistrationController @Inject() (
     authorise: AuthAction,
     service: RegistrationService
 )(implicit ec: ExecutionContext)
-    extends BackendController(cc)
-    with Logging {
+    extends BackendController(cc) {
 
   def registerIndividualWithNino(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithNinoIndFrontendRequest] { request =>
@@ -87,7 +86,7 @@ class RegistrationController @Inject() (
       service.registerIndWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>
-          logger.warn(s"[registerIndividualWithoutId] Error registering individual without id. Error: $error")
+          logWarn(s"[registerIndividualWithoutId] Error registering individual without id. Error: $error")
           InternalServerError("Unexpected error")
       }
     }
@@ -98,7 +97,7 @@ class RegistrationController @Inject() (
       service.registerOrgWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>
-          logger.warn(s"[registerOrganisationWithoutId] Error registering organisation without id. Error: $error")
+          logWarn(s"[registerOrganisationWithoutId] Error registering organisation without id. Error: $error")
           InternalServerError("Unexpected error")
       }
     }

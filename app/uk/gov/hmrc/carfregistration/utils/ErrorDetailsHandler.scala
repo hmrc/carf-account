@@ -16,25 +16,25 @@
 
 package uk.gov.hmrc.carfregistration.utils
 
-import play.api.Logging
 import uk.gov.hmrc.carfregistration.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError, NotFoundError}
 import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.carfregistration.utils.LoggerUtil.*
 
 import java.net.URL
 import scala.util.{Failure, Success, Try}
 
-object ErrorDetailsHandler extends Logging {
+object ErrorDetailsHandler {
 
   def errorParse(response: HttpResponse, endpoint: URL): ApiError =
-    logger.warn(s"Status code: ${response.status} from endpoint: ${endpoint.toURI}")
+    logWarn(s"Status code: ${response.status} from endpoint: ${endpoint.toURI}")
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)     =>
-        logger.warn(
+        logWarn(
           s"Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
         )
         InternalServerError
       case Failure(exception) =>
-        logger.warn(
+        logWarn(
           s"Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
         )
         JsonValidationError
@@ -44,15 +44,15 @@ object ErrorDetailsHandler extends Logging {
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)
           if error.errorDetail.sourceFaultDetail.flatMap(_.detail.headOption).forall(_.trim.startsWith("001")) =>
-        logger.info("UnprocessableEntity from View RCASP with detail 001. No RCASPs found.")
+        logInfo("UnprocessableEntity from View RCASP with detail 001. No RCASPs found.")
         NotFoundError
       case Success(error)     =>
-        logger.warn(
+        logWarn(
           s"Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
         )
         InternalServerError
       case Failure(exception) =>
-        logger.warn(
+        logWarn(
           s"Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
         )
         JsonValidationError

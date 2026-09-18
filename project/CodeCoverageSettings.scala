@@ -10,16 +10,10 @@ object CodeCoverageSettings {
     "app.*",
     "prod.*",
     ".*Routes.*",
-    "testOnly.*",
-    "testOnlyDoNotUseInAppConf.*",
-    "com.kenshoo.play.metrics.*",
-    ".*definition.*",
-    ".*stubs.*",
-    ".*models.*",
+    ".*testOnly.*",
+    ".*testOnlyDoNotUseInAppConf.*",
     ".*repositories.*",
     ".*package.*",
-    ".*controllers.test.*",
-    ".*services.test.*",
     ".*metrics.*"
   )
 
