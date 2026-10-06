@@ -1,13 +1,18 @@
 # microservice specific routes
 
-POST        /individual/nino                       uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithNino()
-POST        /individual/utr                        uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithUtr()
-POST        /organisation/utr/user-entered         uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerUserEntryOrganisationWithId()
-POST        /organisation/utr/ct-auto-match        uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerAutoMatchOrganisationWithId()
+POST          /individual/nino                       uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithNino()
+POST          /individual/utr                        uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithUtr()
+POST          /organisation/utr/user-entered         uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerUserEntryOrganisationWithId()
+POST          /organisation/utr/ct-auto-match        uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerAutoMatchOrganisationWithId()
 
-GET         /subscription/display/:carfId          uk.gov.hmrc.carfaccount.controllers.SubscriptionController.displaySubscription(carfId: String)
-POST        /subscription/subscribe                uk.gov.hmrc.carfaccount.controllers.SubscriptionController.createSubscription()
-PUT         /subscription/amend                    uk.gov.hmrc.carfaccount.controllers.SubscriptionController.updateSubscription()
+GET           /subscription/display/:carfId          uk.gov.hmrc.carfaccount.controllers.SubscriptionController.displaySubscription(carfId: String)
+POST          /subscription/subscribe                uk.gov.hmrc.carfaccount.controllers.SubscriptionController.createSubscription()
+PUT           /subscription/amend                    uk.gov.hmrc.carfaccount.controllers.SubscriptionController.updateSubscription()
 
-POST        /individual-without-id                 uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithoutId()
-POST        /organisation-without-id               uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerOrganisationWithoutId()
+POST          /individual-without-id                 uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerIndividualWithoutId()
+POST          /organisation-without-id               uk.gov.hmrc.carfaccount.controllers.RegistrationController.registerOrganisationWithoutId()
+
+GET           /view-rcasp/:carfId/:rcaspId           uk.gov.hmrc.carfaccount.controllers.management.RcaspController.viewRcasp(carfId: String, rcaspId: String)
+POST          /create                                uk.gov.hmrc.carfaccount.controllers.management.RcaspController.createRcasp()
+POST          /update                                uk.gov.hmrc.carfaccount.controllers.management.RcaspController.updateRcasp()
+DELETE        /delete                                uk.gov.hmrc.carfaccount.controllers.management.RcaspController.deleteRcasp()
