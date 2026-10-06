@@ -1,7 +1,7 @@
 
 # carf-account
 
-This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration and management journeys
+This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration and management journeys.
 
 ## What this service does
 - REST API endpoints for registration and management data
