@@ -1,5 +1,5 @@
 
-# carf-registration
+# carf-account
 
 This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration journey
 
@@ -25,9 +25,9 @@ sm2 --start CARF_ALL
 ```
 Stop this service from service manager.
 ```
-sm2 --stop CARF_REGISTRATION
+sm2 --stop CARF_ACCOUNT
 ```
-Run CARF_REGISTRATION locally using sbt to test dev changes.
+Run CARF_ACCOUNT locally using sbt to test dev changes.
 ```
 sbt run
 ```
@@ -37,7 +37,7 @@ sbt run
 sm2 --start CARF_ALL
 ```
 ```
-sm2 --stop CARF_REGISTRATION
+sm2 --stop CARF_ACCOUNT
 ```
 Starts service locally with test-only routes enabled.
 ```
