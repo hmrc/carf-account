@@ -20,11 +20,11 @@ import base.SpecBase
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
-import uk.gov.hmrc.carfregistration.models.*
-import uk.gov.hmrc.carfregistration.models.requests.*
-import uk.gov.hmrc.carfregistration.models.responses.*
-import uk.gov.hmrc.carfregistration.services.RegistrationService
+import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
+import uk.gov.hmrc.carfaccount.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError, UuidGen}
+import uk.gov.hmrc.carfaccount.models.requests.{AddressDetailsFrontend, ContactDetailsFrontend, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdIndFrontendRequest, RegWithoutIdOrgFrontendRequest}
+import uk.gov.hmrc.carfaccount.models.responses.{AddressResponse, IndividualResponse, OrganisationResponse, RegWithIdApiResponse, RegWithIdApiResponseDetails, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdApiResponse, RegWithoutIdApiResponseDetail, RegWithoutIdApiResponseDetails, RegWithoutIdFrontendResponse, ResponseCommon, ResponseDetail}
+import uk.gov.hmrc.carfaccount.services.RegistrationService
 
 import java.util.UUID
 import scala.concurrent.Future

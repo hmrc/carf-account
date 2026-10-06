@@ -19,8 +19,8 @@ package actions
 import play.api.mvc.{AnyContent, BodyParser, PlayBodyParsers, Request, Result}
 import uk.gov.hmrc.auth.core.AffinityGroup
 import uk.gov.hmrc.auth.core.AffinityGroup.Organisation
-import uk.gov.hmrc.carfregistration.controllers.actions.AuthAction
-import uk.gov.hmrc.carfregistration.models.requests.AuthenticatedRequest
+import uk.gov.hmrc.carfaccount.controllers.actions.AuthAction
+import uk.gov.hmrc.carfaccount.models.requests.AuthenticatedRequest
 import uk.gov.hmrc.http.SessionId
 
 import scala.concurrent.{ExecutionContext, Future}

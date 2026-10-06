@@ -17,7 +17,7 @@
 package models.requests
 
 import base.SpecBase
-import uk.gov.hmrc.carfregistration.models.requests.{OrganisationDetails, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RequestDetailOrgCtAutoMatch, RequestDetailOrgUserEntry}
+import uk.gov.hmrc.carfaccount.models.requests.{OrganisationDetails, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RequestDetailOrgCtAutoMatch, RequestDetailOrgUserEntry}
 
 class RequestDetailOrgSpec extends SpecBase {
 

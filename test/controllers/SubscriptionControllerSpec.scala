@@ -23,12 +23,12 @@ import org.mockito.Mockito.{reset, times, verify, when}
 import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.{contentAsJson, contentAsString, status}
-import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
-import uk.gov.hmrc.carfregistration.controllers.SubscriptionController
-import uk.gov.hmrc.carfregistration.models.*
-import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
-import uk.gov.hmrc.carfregistration.types.ResultT
+import uk.gov.hmrc.carfaccount.connectors.SubscriptionConnector
+import uk.gov.hmrc.carfaccount.controllers.SubscriptionController
+import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, ErrorDetails, Individual, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.models.requests.{Contact, SubscriptionRequest}
+import uk.gov.hmrc.carfaccount.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
+import uk.gov.hmrc.carfaccount.types.ResultT
 import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.Future
@@ -78,7 +78,7 @@ class SubscriptionControllerSpec extends SpecBase {
       "must return success response when the connector successfully sends subscription information" in {
         when(mockConnector.sendSubscriptionInformation(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, uk.gov.hmrc.carfregistration.models.ApiError](
+            EitherT.rightT[Future, ApiError](
               HttpResponse(OK, testSuccessResponseBody)
             )
           )
@@ -109,7 +109,7 @@ class SubscriptionControllerSpec extends SpecBase {
 
         when(mockConnector.sendSubscriptionInformation(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, uk.gov.hmrc.carfregistration.models.ApiError](
+            EitherT.rightT[Future, ApiError](
               HttpResponse(UNPROCESSABLE_ENTITY, enrichedBody)
             )
           )
@@ -128,7 +128,7 @@ class SubscriptionControllerSpec extends SpecBase {
 
         when(mockConnector.sendSubscriptionInformation(any())(any()))
           .thenReturn(
-            EitherT.rightT[Future, uk.gov.hmrc.carfregistration.models.ApiError](
+            EitherT.rightT[Future, ApiError](
               HttpResponse(UNPROCESSABLE_ENTITY, duplicateSubmissionResponseBody)
             )
           )

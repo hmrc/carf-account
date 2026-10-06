@@ -17,7 +17,7 @@
 package models.requests
 
 import base.SpecBase
-import uk.gov.hmrc.carfregistration.models.requests.*
+import uk.gov.hmrc.carfaccount.models.requests.{IndividualDetailsWithNino, IndividualDetailsWithUtr, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RequestDetailIndividual}
 
 class RequestDetailIndividualSpec extends SpecBase {
 

@@ -23,10 +23,10 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.Status.*
 import play.api.libs.json.Json
-import uk.gov.hmrc.carfregistration.connectors.SubscriptionConnector
-import uk.gov.hmrc.carfregistration.models.requests.{Contact, SubscriptionRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
-import uk.gov.hmrc.carfregistration.models.*
+import uk.gov.hmrc.carfaccount.connectors.SubscriptionConnector
+import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, ErrorDetails, Individual, InternalServerError, JsonValidationError, NotFoundError, SourceFaultDetail}
+import uk.gov.hmrc.carfaccount.models.requests.{Contact, SubscriptionRequest}
+import uk.gov.hmrc.carfaccount.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 class SubscriptionConnectorISpec

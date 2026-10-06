@@ -24,10 +24,11 @@ import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.{BadRequest, InternalServerError}
 import play.api.test.Helpers.{contentAsString, status}
-import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.controllers.management.RcaspController
-import uk.gov.hmrc.carfregistration.models.responses.*
-import uk.gov.hmrc.carfregistration.models.*
+import uk.gov.hmrc.carfaccount.connectors.RcaspConnector
+import uk.gov.hmrc.carfaccount.controllers.management.RcaspController
+import uk.gov.hmrc.carfaccount.models
+import uk.gov.hmrc.carfaccount.models.responses.{RcaspResponseCommon, RcaspResponseDetails, SubmitRcaspResponse, SubmitResponseDetails, SubmitReturnParameters, ViewRcasp, ViewRcaspResponse}
+import uk.gov.hmrc.carfaccount.models.{viewAndUpdateRcasp, ApiError, JsonValidationError, NotFoundError, RcaspAddress, RcaspContactDetails, TinDetails}
 
 import scala.concurrent.Future
 
@@ -218,7 +219,7 @@ class RcaspControllerSpec extends SpecBase {
       "must return Internal Server Error when the connector returns Internal server error" in {
         when(mockConnector.createRcasp(any())(any()))
           .thenReturn(
-            EitherT.leftT[Future, ApiError](uk.gov.hmrc.carfregistration.models.InternalServerError)
+            EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
         val result = testController.createRcasp()(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
@@ -320,7 +321,7 @@ class RcaspControllerSpec extends SpecBase {
       "must return Internal Server Error when the connector returns Internal server error" in {
         when(mockConnector.updateRcasp(any())(any()))
           .thenReturn(
-            EitherT.leftT[Future, ApiError](uk.gov.hmrc.carfregistration.models.InternalServerError)
+            EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
         val result = testController.updateRcasp()(fakeRequestWithJsonBody(updateRequest))
@@ -392,7 +393,7 @@ class RcaspControllerSpec extends SpecBase {
       "must return Internal Server Error when the connector returns Internal server error" in {
         when(mockConnector.deleteRcasp(any())(any()))
           .thenReturn(
-            EitherT.leftT[Future, ApiError](uk.gov.hmrc.carfregistration.models.InternalServerError)
+            EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
         val result = testController.deleteRcasp()(fakeRequestWithJsonBody(deleteRequest))

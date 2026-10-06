@@ -22,13 +22,13 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.matchers.should.Matchers
 import play.api.http.Status.*
-import uk.gov.hmrc.carfregistration.connectors.RcaspConnector
-import uk.gov.hmrc.carfregistration.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
-import uk.gov.hmrc.carfregistration.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
-import uk.gov.hmrc.carfregistration.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
-import uk.gov.hmrc.carfregistration.models.requests.{createRcasp, deleteRcasp, updateRcasp, RcaspRequestCommon}
-import uk.gov.hmrc.carfregistration.models.responses.*
-import uk.gov.hmrc.carfregistration.models.*
+import uk.gov.hmrc.carfaccount.connectors.RcaspConnector
+import uk.gov.hmrc.carfaccount.models.{InternalServerError, JsonValidationError, NotFoundError, RcaspAddress, RcaspContactDetails, TinDetails, viewAndUpdateRcasp}
+import uk.gov.hmrc.carfaccount.models.requests.{RcaspRequestCommon, createRcasp, deleteRcasp, updateRcasp}
+import uk.gov.hmrc.carfaccount.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
+import uk.gov.hmrc.carfaccount.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
+import uk.gov.hmrc.carfaccount.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
+import uk.gov.hmrc.carfaccount.models.responses.{RcaspResponseCommon, RcaspResponseDetails, SubmitRcaspResponse, SubmitResponseDetails, SubmitReturnParameters, ViewRcasp, ViewRcaspResponse}
 import uk.gov.hmrc.http.HeaderCarrier
 
 class RcaspConnectorISpec

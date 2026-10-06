@@ -29,8 +29,8 @@ import play.api.libs.json.JsValue
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers}
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.{DefaultAwaitTimeout, FakeHeaders, FakeRequest}
-import uk.gov.hmrc.carfregistration.config.Constants.ukTimeZoneStringId
-import uk.gov.hmrc.carfregistration.models.responses.AddressResponse
+import uk.gov.hmrc.carfaccount.models.responses.AddressResponse
+import uk.gov.hmrc.carfaccount.config.Constants.ukTimeZoneStringId
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.{Clock, Instant, ZoneId}
