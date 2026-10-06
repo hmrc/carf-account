@@ -17,8 +17,8 @@
 package models.responses
 
 import base.SpecBase
-import uk.gov.hmrc.carfregistration.models.MissingFieldsError
-import uk.gov.hmrc.carfregistration.models.responses.*
+import uk.gov.hmrc.carfaccount.models.MissingFieldsError
+import uk.gov.hmrc.carfaccount.models.responses.{IndividualResponse, RegWithIdApiResponse, RegWithIdApiResponseDetails, RegWithIdIndFrontendResponse, ResponseCommon, ResponseDetail}
 
 class RegWithIdIndFrontendResponseSpec extends SpecBase {
 

@@ -1,6 +1,6 @@
 import uk.gov.hmrc.DefaultBuildSettings
 
-val appName = "carf-registration"
+val appName = "carf-account"
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.3.6"
 ThisBuild / scalacOptions += "-Wconf:msg=Flag.*repeatedly:s"

@@ -1,6 +1,6 @@
 # management microservice specific routes
 
-GET        /view-rcasp/:carfId/:rcaspId          uk.gov.hmrc.carfregistration.controllers.management.RcaspController.viewRcasp(carfId: String, rcaspId: String)
-POST       /create                               uk.gov.hmrc.carfregistration.controllers.management.RcaspController.createRcasp()
-POST       /update                               uk.gov.hmrc.carfregistration.controllers.management.RcaspController.updateRcasp()
-DELETE     /delete                               uk.gov.hmrc.carfregistration.controllers.management.RcaspController.deleteRcasp()
+GET        /view-rcasp/:carfId/:rcaspId          uk.gov.hmrc.carfaccount.controllers.management.RcaspController.viewRcasp(carfId: String, rcaspId: String)
+POST       /create                               uk.gov.hmrc.carfaccount.controllers.management.RcaspController.createRcasp()
+POST       /update                               uk.gov.hmrc.carfaccount.controllers.management.RcaspController.updateRcasp()
+DELETE     /delete                               uk.gov.hmrc.carfaccount.controllers.management.RcaspController.deleteRcasp()

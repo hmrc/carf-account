@@ -23,11 +23,11 @@ import org.mockito.Mockito.{reset, when}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Results.BadRequest
 import play.api.test.Helpers.*
-import uk.gov.hmrc.carfregistration.controllers.RegistrationController
-import uk.gov.hmrc.carfregistration.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest}
-import uk.gov.hmrc.carfregistration.models.responses.{AddressResponse, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
-import uk.gov.hmrc.carfregistration.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
-import uk.gov.hmrc.carfregistration.services.RegistrationService
+import uk.gov.hmrc.carfaccount.controllers.RegistrationController
+import uk.gov.hmrc.carfaccount.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.models.requests.{RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest}
+import uk.gov.hmrc.carfaccount.models.responses.{AddressResponse, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
+import uk.gov.hmrc.carfaccount.services.RegistrationService
 
 import scala.concurrent.Future
 

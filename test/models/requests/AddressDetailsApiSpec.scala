@@ -17,7 +17,7 @@
 package models.requests
 
 import base.SpecBase
-import uk.gov.hmrc.carfregistration.models.requests.{AddressDetailsApi, AddressDetailsFrontend}
+import uk.gov.hmrc.carfaccount.models.requests.{AddressDetailsApi, AddressDetailsFrontend}
 
 class AddressDetailsApiSpec extends SpecBase {
 

@@ -23,10 +23,10 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.must.Matchers.mustBe
 import play.api.http.Status.*
 import play.api.libs.json.Json
-import uk.gov.hmrc.carfregistration.connectors.RegistrationConnector
-import uk.gov.hmrc.carfregistration.models.*
-import uk.gov.hmrc.carfregistration.models.requests.*
-import uk.gov.hmrc.carfregistration.models.responses.*
+import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
+import uk.gov.hmrc.carfaccount.models.{InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.models.requests.{AddressDetailsApi, ContactDetailsFrontend, IndividualDetailsWithNino, IndividualDetailsWithoutId, OrganisationDetailsWithoutId, RegWithIdIndApiRequest, RegWithIdIndApiRequestDetails, RegWithIdOrgApiRequest, RegWithIdOrgApiRequestDetails, RegWithIdUserEntryOrgFrontendRequest, RegWithoutIdApiRequest, RegWithoutIdApiRequestDetails, RequestCommon, RequestDetailIndividual, RequestDetailIndividualWithoutId, RequestDetailOrgUserEntry, RequestDetailOrganisationWithoutId}
+import uk.gov.hmrc.carfaccount.models.responses.{AddressResponse, IndividualResponse, OrganisationResponse, RegWithIdApiResponse, RegWithIdApiResponseDetails, RegWithoutIdApiResponse, RegWithoutIdApiResponseDetail, RegWithoutIdApiResponseDetails, ResponseCommon, ResponseDetail}
 import uk.gov.hmrc.http.HeaderCarrier
 
 class RegistrationConnectorISpec

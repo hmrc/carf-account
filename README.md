@@ -1,13 +1,16 @@
 
 # carf-account
 
-This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration journey
+This is the Backend repository for the Crypto Asset Reporting Framework (CARF) team's registration and management journeys
 
 ## What this service does
-- REST API endpoints for registration data
+- REST API endpoints for registration and management data
 - data retrieval from MongoBD
 - Integration with HMRC downstream services (ETMP, DES) and audit integration
-- Processes registration submission
+- Processes
+  - Registration submission
+  - RCASP submission
+  - RCASP management
 
 ### Running the service locally
 
