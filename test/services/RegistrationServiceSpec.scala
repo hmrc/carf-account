@@ -1,0 +1,421 @@
+/*
+ * Copyright 2025 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package services
+
+import base.SpecBase
+import cats.data.EitherT
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{reset, when}
+import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
+import uk.gov.hmrc.carfaccount.models.{ApiError, InternalServerError, JsonValidationError, NotFoundError, UuidGen}
+import uk.gov.hmrc.carfaccount.models.requests.{AddressDetailsFrontend, ContactDetailsFrontend, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdUserEntryOrgFrontendRequest, RegWithNinoIndFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdIndFrontendRequest, RegWithoutIdOrgFrontendRequest}
+import uk.gov.hmrc.carfaccount.models.responses.{AddressResponse, IndividualResponse, OrganisationResponse, RegWithIdApiResponse, RegWithIdApiResponseDetails, RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdApiResponse, RegWithoutIdApiResponseDetail, RegWithoutIdApiResponseDetails, RegWithoutIdFrontendResponse, ResponseCommon, ResponseDetail}
+import uk.gov.hmrc.carfaccount.services.RegistrationService
+
+import java.util.UUID
+import scala.concurrent.Future
+
+class RegistrationServiceSpec extends SpecBase {
+
+  val mockConnector: RegistrationConnector = mock[RegistrationConnector]
+  val mockUUIDGen: UuidGen                 = mock[UuidGen]
+
+  val testService: RegistrationService = new RegistrationService(mockConnector, clock, mockUUIDGen)
+
+  val testFrontendRequestIndWithNino =
+    RegWithNinoIndFrontendRequest(
+      requiresNameMatch = true,
+      IDNumber = "test-IDNumber",
+      IDType = "test-Type",
+      dateOfBirth = "test-DOB",
+      firstName = "Colin",
+      lastName = "Cranberry"
+    )
+
+  val testFrontendRequestIndWithUtr =
+    RegWithUtrIndFrontendRequest(
+      requiresNameMatch = true,
+      IDNumber = "test-IDNumber",
+      IDType = "test-Type",
+      firstName = "Colin",
+      lastName = "Cranberry"
+    )
+
+  val testAPIResponseIndividual = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "200"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID",
+        address = testAddressResponse,
+        individual =
+          Some(IndividualResponse(firstName = "Colin", lastName = "Cranberry", middleName = Some("Pikachu"))),
+        organisation = None
+      )
+    )
+  )
+
+  val testFrontendResponse = RegWithIdIndFrontendResponse(
+    safeId = "test-SAFEID",
+    firstName = "Colin",
+    lastName = "Cranberry",
+    middleName = Some("Pikachu"),
+    address = testAddressResponse
+  )
+
+  private def testAddressResponse = AddressResponse(
+    addressLine1 = "64",
+    addressLine2 = Some("Zoo"),
+    addressLine3 = Some("Lane"),
+    addressLine4 = Some("Sixty Four"),
+    postalCode = Some("G66 2AZ"),
+    countryCode = "GB"
+  )
+
+  val testUserEnteredOrgWithUtrFrontendRequest = RegWithIdUserEntryOrgFrontendRequest(
+    requiresNameMatch = true,
+    IDNumber = "1234567890",
+    IDType = "UTR",
+    organisationName = "Testing Ltd",
+    organisationType = "0001"
+  )
+
+  val testApiResponseUserEntryOrg = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "OK"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID-org",
+        address = testAddressResponse,
+        individual = None,
+        organisation = Some(OrganisationResponse(organisationName = "Testing Ltd", code = Some("0001")))
+      )
+    )
+  )
+
+  val testOrganisationFrontendResponse = RegWithIdOrgFrontendResponse(
+    safeId = "test-SAFEID-org",
+    organisationName = "Testing Ltd",
+    code = Some("0001"),
+    address = testAddressResponse
+  )
+
+  val testAutoMatchOrgWithUtrFrontendRequest = RegWithIdAutoMatchOrgFrontendRequest(
+    requiresNameMatch = false,
+    IDNumber = "9876543210",
+    IDType = "UTR"
+  )
+
+  val testApiResponseAutoMatchOrg = RegWithIdApiResponse(
+    registerWithIDResponse = RegWithIdApiResponseDetails(
+      responseCommon = ResponseCommon(status = "OK"),
+      responseDetail = ResponseDetail(
+        SAFEID = "test-SAFEID-automatch",
+        address = testAddressResponse,
+        individual = None,
+        organisation = Some(OrganisationResponse(organisationName = "AutoMatch Ltd", code = Some("0002")))
+      )
+    )
+  )
+
+  val testAutoMatchOrganisationFrontendResponse = RegWithIdOrgFrontendResponse(
+    safeId = "test-SAFEID-automatch",
+    organisationName = "AutoMatch Ltd",
+    code = Some("0002"),
+    address = testAddressResponse
+  )
+
+  val testRegWithoutIdIndFrontendRequest = RegWithoutIdIndFrontendRequest(
+    firstName = "John",
+    lastName = "Doe",
+    dateOfBirth = "1990-01-01",
+    address = AddressDetailsFrontend(
+      addressLine1 = "123 Test Street",
+      addressLine2 = Some("Flat 1"),
+      addressLine3 = None,
+      townOrCity = "France",
+      postalCode = Some("75008"),
+      countryCode = "FR"
+    ),
+    contactDetails = ContactDetailsFrontend(
+      emailAddress = "john.doe@example.com",
+      phoneNumber = Some("07123456789")
+    )
+  )
+
+  val testRegWithoutIdOrgFrontendRequest = RegWithoutIdOrgFrontendRequest(
+    organisationName = "ABC LTD",
+    address = AddressDetailsFrontend(
+      addressLine1 = "123 Test Street",
+      addressLine2 = Some("Flat 1"),
+      addressLine3 = None,
+      townOrCity = "France",
+      postalCode = Some("75008"),
+      countryCode = "FR"
+    ),
+    contactDetails = ContactDetailsFrontend(
+      emailAddress = "john.doe@example.com",
+      phoneNumber = Some("07123456789")
+    )
+  )
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockConnector)
+    when(mockUUIDGen.randomUUID()).thenReturn(UUID(1, 2))
+  }
+
+  "RegistrationService" - {
+    "registerIndividualWithNino [Nino]" - {
+      "must return success frontend response when connector returns successful response to a REQ with a Dob" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](testAPIResponseIndividual))
+        val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
+        result mustBe Right(testFrontendResponse)
+      }
+      "must return success frontend response when connector returns successful response to a REQ without a Dob" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](testAPIResponseIndividual))
+        val result = testService.registerIndWithNino(testFrontendRequestIndWithUtr).futureValue
+        result mustBe Right(testFrontendResponse)
+      }
+      "must return not found when the connector returns a not found" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
+        val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
+        result mustBe Left(NotFoundError)
+      }
+      "must return an internal server error when the connector encounters an unexpected error" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
+        val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
+        result mustBe Left(InternalServerError)
+      }
+      "must return an json validation error when the connector cannot parse the response" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
+        val result = testService.registerIndWithNino(testFrontendRequestIndWithNino).futureValue
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerIndividualWithUtr" - {
+      "must return success frontend response model when the connector returns a successful response" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](testAPIResponseIndividual))
+        val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
+        result mustBe Right(testFrontendResponse)
+      }
+      "must return not found when the connector returns a not found" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
+        val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
+        result mustBe Left(NotFoundError)
+      }
+      "must return an internal server error when the connector encounters an unexpected error" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
+        val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
+        result mustBe Left(InternalServerError)
+      }
+      "must return an json validation error when the connector cannot parse the response" in {
+        when(mockConnector.individualWithId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
+        val result = testService.registerIndWithUtr(testFrontendRequestIndWithUtr).futureValue
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerUserEnteredOrganisationWithId" - {
+      "must return success frontend response when the connector returns a successful response" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](testApiResponseUserEntryOrg))
+
+        val result =
+          testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Right(testOrganisationFrontendResponse)
+      }
+
+      "must return not found when the connector returns a not found error" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
+
+        val result =
+          testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(NotFoundError)
+      }
+
+      "must return an internal server error when the connector returns an unexpected error" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
+
+        val result =
+          testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(InternalServerError)
+      }
+
+      "must return a json validation error when the connector cannot parse the response" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
+
+        val result =
+          testService.registerUserEntryOrgWithId(testUserEnteredOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerAutoMatchOrganisationWithId" - {
+      "must return success frontend response when the connector returns a successful response" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](testApiResponseAutoMatchOrg))
+
+        val result =
+          testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Right(testAutoMatchOrganisationFrontendResponse)
+      }
+
+      "must return not found when the connector returns a not found error" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](NotFoundError))
+
+        val result =
+          testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(NotFoundError)
+      }
+
+      "must return an internal server error when the connector returns an unexpected error" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](InternalServerError))
+
+        val result =
+          testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(InternalServerError)
+      }
+
+      "must return a json validation error when the connector cannot parse the response" in {
+        when(mockConnector.organisationWithID(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithIdApiResponse](JsonValidationError))
+
+        val result =
+          testService.registerAutoMatchOrgWithId(testAutoMatchOrgWithUtrFrontendRequest).futureValue
+
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerIndWithoutId" - {
+
+      "must return success frontend response when the connector returns a successful response" in {
+
+        val apiResponse = RegWithoutIdApiResponse(registerWithoutIDResponse =
+          RegWithoutIdApiResponseDetails(
+            responseCommon = ResponseCommon(status = "OK"),
+            responseDetail = RegWithoutIdApiResponseDetail(
+              SAFEID = "SAFE123456"
+            )
+          )
+        )
+
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](apiResponse))
+
+        val result = testService.registerIndWithoutId(testRegWithoutIdIndFrontendRequest).value.futureValue
+
+        result mustBe Right(RegWithoutIdFrontendResponse("SAFE123456"))
+      }
+
+      "return error when connector returns an error" in {
+
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](NotFoundError))
+
+        val result = testService.registerIndWithoutId(testRegWithoutIdIndFrontendRequest).value.futureValue
+
+        result mustBe Left(NotFoundError)
+      }
+
+      "must return an internal server error when the connector returns an internal server error" in {
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](InternalServerError))
+
+        val result = testService.registerIndWithoutId(testRegWithoutIdIndFrontendRequest).value.futureValue
+        result mustBe Left(InternalServerError)
+      }
+
+      "must return a json validation error when the connector returns json validation error" in {
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](JsonValidationError))
+
+        val result = testService.registerIndWithoutId(testRegWithoutIdIndFrontendRequest).value.futureValue
+        result mustBe Left(JsonValidationError)
+      }
+    }
+
+    "registerOrgWithoutId" - {
+
+      "must return success frontend response when the connector returns a successful response" in {
+
+        val apiResponse = RegWithoutIdApiResponse(registerWithoutIDResponse =
+          RegWithoutIdApiResponseDetails(
+            responseCommon = ResponseCommon(status = "OK"),
+            responseDetail = RegWithoutIdApiResponseDetail(
+              SAFEID = "SAFE123456"
+            )
+          )
+        )
+
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.rightT[Future, ApiError](apiResponse))
+
+        val result = testService.registerOrgWithoutId(testRegWithoutIdOrgFrontendRequest).value.futureValue
+
+        result mustBe Right(RegWithoutIdFrontendResponse("SAFE123456"))
+      }
+
+      "return error when connector returns an error" in {
+
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](NotFoundError))
+
+        val result = testService.registerOrgWithoutId(testRegWithoutIdOrgFrontendRequest).value.futureValue
+
+        result mustBe Left(NotFoundError)
+      }
+
+      "must return an internal server error when the connector returns an internal server error" in {
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](InternalServerError))
+
+        val result = testService.registerOrgWithoutId(testRegWithoutIdOrgFrontendRequest).value.futureValue
+        result mustBe Left(InternalServerError)
+      }
+
+      "must return a json validation error when the connector returns json validation error" in {
+        when(mockConnector.registerWithoutId(any())(any()))
+          .thenReturn(EitherT.leftT[Future, RegWithoutIdApiResponseDetails](JsonValidationError))
+
+        val result = testService.registerOrgWithoutId(testRegWithoutIdOrgFrontendRequest).value.futureValue
+        result mustBe Left(JsonValidationError)
+      }
+    }
+  }
+}

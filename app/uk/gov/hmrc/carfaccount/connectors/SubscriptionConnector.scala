@@ -1,0 +1,183 @@
+/*
+ * Copyright 2026 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.carfaccount.connectors
+
+import cats.data.EitherT
+import com.google.inject.Inject
+import play.api.http.Status.*
+import play.api.libs.json.*
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.carfaccount.config.AppConfig
+import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.models.requests.SubscriptionRequest
+import uk.gov.hmrc.carfaccount.models.responses.SubscriptionDisplayResponse
+import uk.gov.hmrc.carfaccount.types.ResultT
+import uk.gov.hmrc.carfaccount.utils.ErrorDetailsHandler
+import uk.gov.hmrc.carfaccount.models
+import uk.gov.hmrc.carfaccount.models.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
+
+import java.net.URL
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
+
+class SubscriptionConnector @Inject() (
+    config: AppConfig,
+    http: HttpClientV2
+)(implicit ec: ExecutionContext) {
+
+  private val createSubscriptionBackendBaseUrl  = config.createSubscriptionBaseUrl
+  private val displaySubscriptionBackendBaseUrl = config.displaySubscriptionBaseUrl
+  private val updateSubscriptionBackendBaseUrl  = config.updateSubscriptionBaseUrl
+
+  def sendSubscriptionInformation(
+      subscription: SubscriptionRequest
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, HttpResponse] =
+    createSubscription(subscription, url"$createSubscriptionBackendBaseUrl")
+
+  def displaySubscriptionInformation(
+      carfReference: String
+  )(implicit hc: HeaderCarrier): EitherT[Future, ApiError, SubscriptionDisplayResponse] =
+    displaySubscription(url"$displaySubscriptionBackendBaseUrl/$carfReference")
+
+  private def createSubscription(request: SubscriptionRequest, endpoint: URL)(implicit
+      hc: HeaderCarrier
+  ): ResultT[HttpResponse] = {
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
+
+    EitherT {
+      http
+        .post(endpoint)
+        .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "create-subscription"): _*)
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK                                                        =>
+              Right(httpResponse)
+            case UNPROCESSABLE_ENTITY                                      =>
+              logDownStreamError(httpResponse.status, httpResponse.body)
+              isAlreadyRegistered(httpResponse.body) match {
+                case Some(json) =>
+                  logWarn(s"Already registered. ${httpResponse.status} response status")
+                  Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json)))
+                case None       =>
+                  Right(httpResponse)
+              }
+            case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
+            case status                                                    =>
+              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              logDownStreamError(status, httpResponse.body)
+              Left(InternalServerError)
+          }
+        }
+    }
+  }
+
+  def updateSubscription(request: SubscriptionRequest)(implicit
+      hc: HeaderCarrier
+  ): EitherT[Future, (ApiError, Option[ErrorDetail]), HttpResponse] = {
+
+    val endpoint = url"$updateSubscriptionBackendBaseUrl"
+
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
+
+    EitherT {
+      http
+        .put(endpoint)
+        .withBody(Json.toJson(request))
+        .setHeader(additionalHeaders(config, "update-subscription"): _*)
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK     =>
+              Right(httpResponse)
+            case status =>
+              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
+          }
+        }
+    }
+  }
+
+  private def displaySubscription(endpoint: URL)(implicit
+      hc: HeaderCarrier
+  ): ResultT[SubscriptionDisplayResponse] = {
+    logInfo(s"Calling endpoint: ${endpoint.toString}")
+    EitherT {
+      http
+        .get(endpoint)
+        .setHeader(additionalHeaders(config, "display-subscription"): _*)
+        .execute[HttpResponse]
+        .map { httpResponse =>
+          httpResponse.status match {
+            case OK                                                                               =>
+              Try(httpResponse.json.as[SubscriptionDisplayResponse]) match {
+                case Success(data)      =>
+                  logInfo(s"Display subscription success")
+                  Right(data)
+                case Failure(exception) =>
+                  logWarnThrow(
+                    s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
+                    exception
+                  )
+                  Left(JsonValidationError)
+              }
+            case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
+            case NOT_FOUND                                                                        =>
+              logWarn(
+                s"No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+              )
+              Left(NotFoundError)
+            case _                                                                                =>
+              logWarn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
+              Left(InternalServerError)
+          }
+        }
+    }
+  }
+
+  private def logDownStreamError(status: Int, body: String): Option[ErrorDetail] = {
+    val error = Try(Json.parse(body).validate[ErrorDetail])
+    error match {
+      case Success(JsSuccess(errorDetailBody, _)) =>
+        logWarn(
+          s"Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
+        )
+        Some(errorDetailBody)
+      case _                                      =>
+        logWarn(s"Error with submission: $status: response is not valid JSON")
+        None
+    }
+  }
+
+  private def isAlreadyRegistered(responseBody: String): Option[JsValue] =
+    Try(Json.parse(responseBody)).toOption
+      .flatMap(_.asOpt[JsObject])
+      .flatMap { json =>
+        (json \\ "errorCode").headOption
+          .flatMap(_.asOpt[String])
+          .filter(_ == "007")
+          .map(_ => json + ("status" -> Json.toJson("already_registered")))
+      }
+
+}
