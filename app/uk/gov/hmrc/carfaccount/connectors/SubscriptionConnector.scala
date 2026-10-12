@@ -65,9 +65,9 @@ class SubscriptionConnector @Inject() (
     logInfo(s"Calling endpoint: ${endpoint.toString}")
 
     def failFuture(response: HttpResponse): Future[Either[ApiError, HttpResponse]] = {
-      logWarn(s"Received 5xx error (${response.status}), failing future to trigger retry.")
+      logWarn(s"[SubscriptionConnector][failFuture] Received 5xx error (${response.status}), failing future to trigger retry.")
       Future.failed(
-        new RuntimeException(s"Upstream 5xx error: ${response.status} with message: ${response.body}")
+        new RuntimeException(s"[SubscriptionConnector][failFuture] Upstream 5xx error: ${response.status} with message: ${response.body}")
       )
     }
 
@@ -87,7 +87,7 @@ class SubscriptionConnector @Inject() (
                 logDownStreamError(httpResponse.status, httpResponse.body)
                 isAlreadyRegistered(httpResponse.body) match {
                   case Some(json) =>
-                    logWarn(s"Already registered. ${httpResponse.status} response status")
+                    logWarn(s"[SubscriptionConnector][failFuture] Already registered. ${httpResponse.status} response status")
                     Future.successful(Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json))))
                   case None       =>
                     Future.successful(Right(httpResponse))
@@ -100,7 +100,7 @@ class SubscriptionConnector @Inject() (
               case status if status >= 500 && status <= 599    =>
                 failFuture(httpResponse)
               case status                                      =>
-                logError(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+                logError(s"[SubscriptionConnector][failFuture] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
                 logDownStreamError(status, httpResponse.body)
                 Future.successful(Left(InternalServerError))
             }

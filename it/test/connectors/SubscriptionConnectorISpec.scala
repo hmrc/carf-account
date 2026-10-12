@@ -147,8 +147,8 @@ class SubscriptionConnectorISpec
       |}""".stripMargin
 
   "sendSubscriptionInformation" should {
-    val url = "/dac6/createsubscriptiondata/carf/v1"
-    "successfully retrieve the API response for a 200 OK (and make a call once)" in {
+
+    "successfully retrieve the API response for a 200 OK" in {
 
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(url))
