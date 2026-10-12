@@ -46,6 +46,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val createSubscriptionBaseUrl: String =
     s"$createSubscriptionHost${config.get[String]("microservice.services.create-subscription.uri")}"
 
+  val createSubscriptionTimeoutInSeconds: Int =
+    config.get[Int]("microservice.services.create-subscription.timeoutInSeconds")
+
   private val displaySubscriptionHost: String = servicesConfig.baseUrl("display-subscription")
 
   val displaySubscriptionBaseUrl: String =
@@ -61,3 +64,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   private val submitRcaspHost: String = servicesConfig.baseUrl("submit-rcasp")
   val submitRcaspBaseUrl: String      = s"$submitRcaspHost${config.get[String]("microservice.services.submit-rcasp.uri")}"
+
+  val apiRetryAttempts: Int       = config.get[Int]("microservice.services.retry.attempts")
+  val apiRetryDelayInSeconds: Int = config.get[Int]("microservice.services.retry.delayInSeconds")

@@ -18,30 +18,32 @@ package uk.gov.hmrc.carfaccount.connectors
 
 import cats.data.EitherT
 import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
 import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.carfaccount.config.AppConfig
-import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.models
 import uk.gov.hmrc.carfaccount.models.requests.SubscriptionRequest
 import uk.gov.hmrc.carfaccount.models.responses.SubscriptionDisplayResponse
+import uk.gov.hmrc.carfaccount.models.{JsonValidationError, *}
 import uk.gov.hmrc.carfaccount.types.ResultT
 import uk.gov.hmrc.carfaccount.utils.ErrorDetailsHandler
-import uk.gov.hmrc.carfaccount.models
-import uk.gov.hmrc.carfaccount.models.*
+import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 
 import java.net.URL
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration.*
 
 class SubscriptionConnector @Inject() (
-    config: AppConfig,
+    val config: AppConfig,
     http: HttpClientV2
-)(implicit ec: ExecutionContext) {
+)(implicit val system: ActorSystem)
+    extends RetryMechanism {
 
   private val createSubscriptionBackendBaseUrl  = config.createSubscriptionBaseUrl
   private val displaySubscriptionBackendBaseUrl = config.displaySubscriptionBaseUrl
@@ -62,34 +64,49 @@ class SubscriptionConnector @Inject() (
   ): ResultT[HttpResponse] = {
     logInfo(s"Calling endpoint: ${endpoint.toString}")
 
-    EitherT {
-      http
-        .post(endpoint)
-        .withBody(Json.toJson(request))
-        .setHeader(additionalHeaders(config, "create-subscription"): _*)
-        .execute[HttpResponse]
-        .map { httpResponse =>
-          httpResponse.status match {
-            case OK                                                        =>
-              Right(httpResponse)
-            case UNPROCESSABLE_ENTITY                                      =>
-              logDownStreamError(httpResponse.status, httpResponse.body)
-              isAlreadyRegistered(httpResponse.body) match {
-                case Some(json) =>
-                  logWarn(s"Already registered. ${httpResponse.status} response status")
-                  Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json)))
-                case None       =>
-                  Right(httpResponse)
-              }
-            case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
-              Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
-            case status                                                    =>
-              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
-              logDownStreamError(status, httpResponse.body)
-              Left(InternalServerError)
-          }
-        }
+    def failFuture(response: HttpResponse): Future[Either[ApiError, HttpResponse]] = {
+      logWarn(s"Received 5xx error (${response.status}), failing future to trigger retry.")
+      Future.failed(
+        new RuntimeException(s"Upstream 5xx error: ${response.status} with message: ${response.body}")
+      )
     }
+
+    retryCall(
+      EitherT {
+        http
+          .post(endpoint)
+          .withBody(Json.toJson(request))
+          .setHeader(additionalHeaders(config, "create-subscription"): _*)
+          .transform(_.withRequestTimeout(config.createSubscriptionTimeoutInSeconds.seconds))
+          .execute[HttpResponse]
+          .flatMap { httpResponse =>
+            httpResponse.status match {
+              case OK                                          =>
+                Future.successful(Right(httpResponse))
+              case UNPROCESSABLE_ENTITY                        =>
+                logDownStreamError(httpResponse.status, httpResponse.body)
+                isAlreadyRegistered(httpResponse.body) match {
+                  case Some(json) =>
+                    logWarn(s"Already registered. ${httpResponse.status} response status")
+                    Future.successful(Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json))))
+                  case None       =>
+                    Future.successful(Right(httpResponse))
+                }
+              case BAD_REQUEST                                 =>
+                Future.successful(Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint)))
+              case INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
+                val _ = ErrorDetailsHandler.errorParse(httpResponse, endpoint)
+                failFuture(httpResponse)
+              case status if status >= 500 && status <= 599    =>
+                failFuture(httpResponse)
+              case status                                      =>
+                logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+                logDownStreamError(status, httpResponse.body)
+                Future.successful(Left(InternalServerError))
+            }
+          }
+      }
+    )
   }
 
   def updateSubscription(request: SubscriptionRequest)(implicit
