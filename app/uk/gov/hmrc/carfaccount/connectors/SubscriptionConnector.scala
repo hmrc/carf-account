@@ -100,7 +100,7 @@ class SubscriptionConnector @Inject() (
               case status if status >= 500 && status <= 599    =>
                 failFuture(httpResponse)
               case status                                      =>
-                logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+                logError(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
                 logDownStreamError(status, httpResponse.body)
                 Future.successful(Left(InternalServerError))
             }

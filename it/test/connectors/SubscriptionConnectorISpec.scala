@@ -148,7 +148,7 @@ class SubscriptionConnectorISpec
 
   "sendSubscriptionInformation" should {
     val url = "/dac6/createsubscriptiondata/carf/v1"
-    "successfully retrieve the API response for a 200 OK" in {
+    "successfully retrieve the API response for a 200 OK (and make a call once)" in {
 
       val mappingBuilder = addMatchHeaders(
         post(urlPathMatching(url))
@@ -170,7 +170,7 @@ class SubscriptionConnectorISpec
       verify(1, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Right with UNPROCESSABLE_ENTITY and the json body with already_registered when error code is 007" in {
+    "return Right with UNPROCESSABLE_ENTITY and the json body with already_registered when error code is 007 (and make a call once)" in {
       val body = """{"errorDetail":{"errorCode":"007","errorMessage":"Already registered"}}"""
       stubFor(
         post(urlPathMatching(url))
@@ -191,7 +191,7 @@ class SubscriptionConnectorISpec
       verify(1, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Right with UNPROCESSABLE_ENTITY and original body when error code is not 007" in {
+    "return Right with UNPROCESSABLE_ENTITY and original body when error code is not 007 (and make a call once)" in {
       val body = """{"errorDetail":{"errorCode":"015","errorMessage":"Invalid ID type"}}"""
       stubFor(
         post(urlPathMatching(url))
@@ -223,7 +223,7 @@ class SubscriptionConnectorISpec
       verify(1, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Left InternalServerError if BAD_REQUEST status response is returned from backend" in {
+    "return Left InternalServerError if BAD_REQUEST status response is returned from backend (and make a call once)" in {
       stubFor(
         post(urlPathMatching(url))
           .willReturn(aResponse().withStatus(BAD_REQUEST).withBody(testApiErrorDetailResponseJson))
@@ -235,7 +235,7 @@ class SubscriptionConnectorISpec
       verify(1, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend" in {
+    "return Left InternalServerError if SERVICE_UNAVAILABLE status response is returned from backend (and make a call once)" in {
       stubFor(
         post(urlPathMatching(url))
           .willReturn(aResponse().withStatus(SERVICE_UNAVAILABLE).withBody(testApiErrorDetailResponseJson))
@@ -247,7 +247,7 @@ class SubscriptionConnectorISpec
       verify(3, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Left InternalServerError if FORBIDDEN status response is returned from backend" in {
+    "return Left InternalServerError if FORBIDDEN status response is returned from backend (and make a call once)" in {
       stubFor(
         post(urlPathMatching(url))
           .willReturn(aResponse().withStatus(FORBIDDEN))
@@ -259,7 +259,7 @@ class SubscriptionConnectorISpec
       verify(1, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Left InternalServerError if 500 status response is returned from backend" in {
+    "return Left InternalServerError if 500 status response is returned from backend (And make three total calls)" in {
       stubFor(
         post(urlPathMatching(url))
           .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR).withBody(testApiErrorDetailResponseJson))
@@ -271,7 +271,7 @@ class SubscriptionConnectorISpec
       verify(3, postRequestedFor(urlPathMatching(url)))
     }
 
-    "return Left InternalServerError if unexpected status code is returned from backend" in {
+    "return Left InternalServerError if unexpected status code is returned from backend (And make three total calls)" in {
       stubFor(
         post(urlPathMatching(url))
           .willReturn(aResponse().withStatus(502))
