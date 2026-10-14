@@ -66,7 +66,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case OK                                                                               =>
               Try(response.json.as[RegWithIdApiResponse]) match {
                 case Success(data)      =>
-                  logDebug(s"Register organisation with ID Success! Response: $data")
+                  logDebug(s"Register organisation with ID Success!")
                   Right(data)
                 case Failure(exception) =>
                   logWarn(
