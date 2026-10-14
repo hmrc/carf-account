@@ -69,7 +69,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   logDebug(s"Register organisation with ID Success!")
                   Right(data)
                 case Failure(exception) =>
-                  logWarn(
+                  logError(
                     s"Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
@@ -77,7 +77,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
-              logWarn(
+              logError( // error as this would stop the progress of the user journey and needs rectifying
                 s"No match could be found for this organisation: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
@@ -106,7 +106,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   logDebug(s"Register individual with ID Success")
                   Right(data)
                 case Failure(exception) =>
-                  logWarnThrow(
+                  logErrorThrow(
                     s"Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -115,12 +115,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
-              logWarn(
+              logError(
                 s"No match could be found for this user: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logWarn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+              logError(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }
@@ -145,7 +145,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   logDebug(s"Register without ID Success")
                   Right(response)
                 case Failure(exception) =>
-                  logWarnThrow(
+                  logErrorThrow(
                     s"Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -154,7 +154,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case _                                                                                =>
-              logWarn(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
+              logError(s"Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}")
               Left(InternalServerError)
           }
         }

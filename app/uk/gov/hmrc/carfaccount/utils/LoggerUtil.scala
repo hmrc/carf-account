@@ -22,11 +22,11 @@ import play.api.Logging
 
 object LoggerUtil extends Logging {
 
-  def logInfo(content: String): Unit                            = logger.info(content)
-  def logDebug(content: String): Unit                           = logger.debug(content)
-  def logWarn(content: String): Unit                            = logger.warn(content)
-  def logWarnThrow(content: String, throwable: Throwable): Unit = logger.warn(content, throwable)
-  def logError(content: String): Unit                           = logger.error(content)
+  def logInfo(content: String): Unit                             = logger.info(content)
+  def logDebug(content: String): Unit                            = logger.debug(content)
+  def logWarn(content: String): Unit                             = logger.warn(content)
+  def logErrorThrow(content: String, throwable: Throwable): Unit = logger.error(content, throwable)
+  def logError(content: String): Unit                            = logger.error(content)
 }
 
 // $COVERAGE-ON$

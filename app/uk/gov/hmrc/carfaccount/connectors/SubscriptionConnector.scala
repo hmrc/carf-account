@@ -65,7 +65,7 @@ class SubscriptionConnector @Inject() (
     logInfo(s"Calling endpoint: ${endpoint.toString}")
 
     def failFuture(response: HttpResponse): Future[Either[ApiError, HttpResponse]] = {
-      logWarn(s"Received 5xx error (${response.status}), failing future to trigger retry.")
+      logError(s"Received 5xx error (${response.status}), failing future to trigger retry.")
       Future.failed(
         new RuntimeException(s"Upstream 5xx error: ${response.status} with message: ${response.body}")
       )
@@ -84,12 +84,12 @@ class SubscriptionConnector @Inject() (
               case OK                                          =>
                 Future.successful(Right(httpResponse))
               case UNPROCESSABLE_ENTITY                        =>
-                logDownStreamError(httpResponse.status, httpResponse.body)
                 isAlreadyRegistered(httpResponse.body) match {
                   case Some(json) =>
                     logWarn(s"Already registered. ${httpResponse.status} response status")
                     Future.successful(Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json))))
                   case None       =>
+                    logDownStreamError(httpResponse.status, httpResponse.body)
                     Future.successful(Right(httpResponse))
                 }
               case BAD_REQUEST                                 =>
@@ -128,7 +128,7 @@ class SubscriptionConnector @Inject() (
             case OK     =>
               Right(httpResponse)
             case status =>
-              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              logError(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
               Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
           }
         }
@@ -152,7 +152,7 @@ class SubscriptionConnector @Inject() (
                   logInfo(s"Display subscription success")
                   Right(data)
                 case Failure(exception) =>
-                  logWarnThrow(
+                  logErrorThrow(
                     s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
@@ -177,12 +177,12 @@ class SubscriptionConnector @Inject() (
     val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
       case Success(JsSuccess(errorDetailBody, _)) =>
-        logWarn(
+        logError(
           s"Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
         )
         Some(errorDetailBody)
       case _                                      =>
-        logWarn(s"Error with submission: $status: response is not valid JSON")
+        logError(s"Error with submission: $status: response is not valid JSON")
         None
     }
   }
