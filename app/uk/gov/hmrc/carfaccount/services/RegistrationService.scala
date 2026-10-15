@@ -124,7 +124,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
         )
       )
     )
-    logInfo(s"[RegistrationService] Registering an individual without id")
+    logInfo(s"[RegistrationService][registerIndWithoutId] Registering an individual without id")
     connector
       .registerWithoutId(apiRequest)
       .map(apiResponse => RegWithoutIdFrontendResponse(apiResponse.registerWithoutIDResponse.responseDetail.SAFEID))

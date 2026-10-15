@@ -77,7 +77,9 @@ class RcaspController @Inject() (
             case Right(submitResponse) =>
               Ok(Json.toJson(submitResponse))
             case Left(apiError)        =>
-              logWarn(s"Error sending rcasp ${action.toLowerCase} information: $apiError")
+              logError(
+                s"[RcaspController][processRcaspRequest]Error sending rcasp ${action.toLowerCase} information: $apiError"
+              )
               InternalServerError(s"Error sending rcasp ${action.toLowerCase} information")
           }
       )

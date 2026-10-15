@@ -62,12 +62,16 @@ class SubscriptionConnector @Inject() (
   private def createSubscription(request: SubscriptionRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
   ): ResultT[HttpResponse] = {
-    logInfo(s"Calling endpoint: ${endpoint.toString}")
+    logInfo(s"[RcaspConnector][createSubscription] Calling endpoint: ${endpoint.toString}")
 
     def failFuture(response: HttpResponse): Future[Either[ApiError, HttpResponse]] = {
-      logWarn(s"[SubscriptionConnector][failFuture] Received 5xx error (${response.status}), failing future to trigger retry.")
+      logError(
+        s"[RcaspConnector][createSubscription] Received 5xx error (${response.status}), failing future to trigger retry."
+      )
       Future.failed(
-        new RuntimeException(s"[SubscriptionConnector][failFuture] Upstream 5xx error: ${response.status} with message: ${response.body}")
+        new RuntimeException(
+          s"[RcaspConnector][createSubscription] Upstream 5xx error: ${response.status} with message: ${response.body}"
+        )
       )
     }
 
@@ -84,12 +88,14 @@ class SubscriptionConnector @Inject() (
               case OK                                          =>
                 Future.successful(Right(httpResponse))
               case UNPROCESSABLE_ENTITY                        =>
-                logDownStreamError(httpResponse.status, httpResponse.body)
                 isAlreadyRegistered(httpResponse.body) match {
                   case Some(json) =>
-                    logWarn(s"[SubscriptionConnector][failFuture] Already registered. ${httpResponse.status} response status")
+                    logError(
+                      s"[RcaspConnector][createSubscription] Already registered. ${httpResponse.status} response status"
+                    )
                     Future.successful(Right(HttpResponse(UNPROCESSABLE_ENTITY, Json.stringify(json))))
                   case None       =>
+                    logDownStreamError(httpResponse.status, httpResponse.body)
                     Future.successful(Right(httpResponse))
                 }
               case BAD_REQUEST                                 =>
@@ -100,7 +106,9 @@ class SubscriptionConnector @Inject() (
               case status if status >= 500 && status <= 599    =>
                 failFuture(httpResponse)
               case status                                      =>
-                logError(s"[SubscriptionConnector][failFuture] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+                logError(
+                  s"[RcaspConnector][createSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
+                )
                 logDownStreamError(status, httpResponse.body)
                 Future.successful(Left(InternalServerError))
             }
@@ -115,7 +123,7 @@ class SubscriptionConnector @Inject() (
 
     val endpoint = url"$updateSubscriptionBackendBaseUrl"
 
-    logInfo(s"Calling endpoint: ${endpoint.toString}")
+    logInfo(s"[RcaspConnector][updateSubscription]Calling endpoint: ${endpoint.toString}")
 
     EitherT {
       http
@@ -128,7 +136,9 @@ class SubscriptionConnector @Inject() (
             case OK     =>
               Right(httpResponse)
             case status =>
-              logWarn(s"Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}")
+              logError(
+                s"[RcaspConnector][updateSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
+              )
               Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
           }
         }
@@ -149,11 +159,11 @@ class SubscriptionConnector @Inject() (
             case OK                                                                               =>
               Try(httpResponse.json.as[SubscriptionDisplayResponse]) match {
                 case Success(data)      =>
-                  logInfo(s"Display subscription success")
+                  logInfo(s"[RcaspConnector][displaySubscription] Display subscription success")
                   Right(data)
                 case Failure(exception) =>
-                  logWarnThrow(
-                    s"Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
+                  logErrorThrow(
+                    s"[RcaspConnector][displaySubscription] Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
                     exception
                   )
                   Left(JsonValidationError)
@@ -162,11 +172,13 @@ class SubscriptionConnector @Inject() (
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case NOT_FOUND                                                                        =>
               logWarn(
-                s"No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+                s"[RcaspConnector][displaySubscription] No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logWarn(s"Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}")
+              logError(
+                s"[RcaspConnector][displaySubscription] Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+              )
               Left(InternalServerError)
           }
         }
@@ -177,12 +189,13 @@ class SubscriptionConnector @Inject() (
     val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
       case Success(JsSuccess(errorDetailBody, _)) =>
-        logWarn(
-          s"Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail.map(_.detail.mkString)}"
+        logError(
+          s"[RcaspConnector][logDownStreamError] Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail
+              .map(_.detail.mkString)}"
         )
         Some(errorDetailBody)
       case _                                      =>
-        logWarn(s"Error with submission: $status: response is not valid JSON")
+        logError(s"[RcaspConnector][logDownStreamError] Error with submission: $status: response is not valid JSON")
         None
     }
   }

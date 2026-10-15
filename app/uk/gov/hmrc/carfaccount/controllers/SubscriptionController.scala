@@ -48,7 +48,7 @@ class SubscriptionController @Inject() (
             case Right(httpResponse) =>
               Status(httpResponse.status)(httpResponse.body)
             case Left(apiError)      =>
-              logWarn(s"Error sending subscription information: $apiError")
+              logError(s"Error sending subscription information: $apiError")
               InternalServerError("Error sending subscription information")
           }
       )
@@ -67,7 +67,7 @@ class SubscriptionController @Inject() (
             case Right(httpResponse)                =>
               Ok(httpResponse.body)
             case Left((apiError, maybeErrorDetail)) =>
-              logWarn(s"Error sending updated subscription information: $apiError")
+              logError(s"Error sending updated subscription information: $apiError")
               maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
                 errorDetail =>
                   InternalServerError(Json.toJson(errorDetail))
