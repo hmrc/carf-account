@@ -26,16 +26,16 @@ import scala.util.{Failure, Success, Try}
 object ErrorDetailsHandler {
 
   def errorParse(response: HttpResponse, endpoint: URL): ApiError =
-    logError(s"[RcaspConnector][errorParse] Status code: ${response.status} from endpoint: ${endpoint.toURI}")
+    logWarn(s"[ErrorDetailsHandler][errorParse] Status code: ${response.status} from endpoint: ${endpoint.toURI}")
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)     =>
-        logError(
-          s"[RcaspConnector][errorParse] Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
+        logWarn(
+          s"[ErrorDetailsHandler][errorParse] Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
         )
         InternalServerError
       case Failure(exception) =>
-        logError(
-          s"[RcaspConnector][errorParse] Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
+        logWarn(
+          s"[ErrorDetailsHandler][errorParse] Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
         )
         JsonValidationError
     }
@@ -44,18 +44,18 @@ object ErrorDetailsHandler {
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)
           if error.errorDetail.sourceFaultDetail.flatMap(_.detail.headOption).forall(_.trim.startsWith("001")) =>
-        logInfo(
-          "[RcaspConnector][errorParseForViewRcasp422] UnprocessableEntity from View RCASP with detail 001. No RCASPs found."
+        logError(
+          "[ErrorDetailsHandler][errorParseForViewRcasp422] UnprocessableEntity from View RCASP with detail 001. No RCASPs found."
         )
         NotFoundError
       case Success(error)     =>
         logError(
-          s"[RcaspConnector][errorParseForViewRcasp422] Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
+          s"[ErrorDetailsHandler][errorParseForViewRcasp422] Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
         )
         InternalServerError
       case Failure(exception) =>
         logError(
-          s"[RcaspConnector][errorParseForViewRcasp422] Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
+          s"[ErrorDetailsHandler][errorParseForViewRcasp422] Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
         )
         JsonValidationError
     }
