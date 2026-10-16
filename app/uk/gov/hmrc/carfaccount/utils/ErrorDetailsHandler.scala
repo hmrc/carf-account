@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.carfaccount.utils
 
+import uk.gov.hmrc.carfaccount.models.*
+import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.http.HttpResponse
-import LoggerUtil.*
-import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, InternalServerError, JsonValidationError, NotFoundError}
 
 import java.net.URL
 import scala.util.{Failure, Success, Try}
@@ -29,12 +29,12 @@ object ErrorDetailsHandler {
     logWarn(s"[ErrorDetailsHandler][errorParse] Status code: ${response.status} from endpoint: ${endpoint.toURI}")
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)     =>
-        logWarn(
+        logError(
           s"[ErrorDetailsHandler][errorParse] Error code: ${error.errorDetail.errorCode}. Error message: ${error.errorDetail.errorMessage}. Source fault detail: ${error.errorDetail.sourceFaultDetail}"
         )
         InternalServerError
       case Failure(exception) =>
-        logWarn(
+        logError(
           s"[ErrorDetailsHandler][errorParse] Error parsing response as ErrorDetails. Exception: <${exception.getMessage}>"
         )
         JsonValidationError
@@ -44,7 +44,7 @@ object ErrorDetailsHandler {
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)
           if error.errorDetail.sourceFaultDetail.flatMap(_.detail.headOption).forall(_.trim.startsWith("001")) =>
-        logError(
+        logInfo(
           "[ErrorDetailsHandler][errorParseForViewRcasp422] UnprocessableEntity from View RCASP with detail 001. No RCASPs found."
         )
         NotFoundError
