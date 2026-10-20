@@ -71,7 +71,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   )
                   Right(data)
                 case Failure(exception) =>
-                  logWarn(
+                  logError(
                     s"[RegistrationConnector][registerOrganisationWithID] Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)

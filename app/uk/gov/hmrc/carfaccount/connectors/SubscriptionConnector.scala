@@ -171,7 +171,7 @@ class SubscriptionConnector @Inject() (
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case NOT_FOUND                                                                        =>
-              logWarn(
+              logError(
                 s"[SubscriptionConnector][displaySubscription] No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
