@@ -118,8 +118,7 @@ class RcaspConnector @Inject() (
     sendRequest(submitUrl, requestBuilderWithHeaders) { httpResponse =>
       Try(httpResponse.json.as[SubmitRcaspResponse]) match {
         case Success(data)      =>
-          logDebug(s"[RcaspConnector][processMutationRequest] RCASP submit call successful ! Response: ${Json
-              .prettyPrint(Json.toJson(data))}")
+          logDebug("[RcaspConnector][processMutationRequest] RCASP submit call successful!")
           Right(data)
         case Failure(exception) =>
           logError(
