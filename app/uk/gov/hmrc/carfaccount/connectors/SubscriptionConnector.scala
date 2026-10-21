@@ -106,7 +106,7 @@ class SubscriptionConnector @Inject() (
               case status if status >= 500 && status <= 599    =>
                 failFuture(httpResponse)
               case status                                      =>
-                logWarn(
+                logError(
                   s"[SubscriptionConnector][createSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
                 )
                 logDownStreamError(status, httpResponse.body)
@@ -136,7 +136,7 @@ class SubscriptionConnector @Inject() (
             case OK     =>
               Right(httpResponse)
             case status =>
-              logWarn(
+              logError(
                 s"[SubscriptionConnector][updateSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
               )
               Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
@@ -171,12 +171,12 @@ class SubscriptionConnector @Inject() (
             case BAD_REQUEST | UNPROCESSABLE_ENTITY | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case NOT_FOUND                                                                        =>
-              logWarn(
+              logError(
                 s"[SubscriptionConnector][displaySubscription] No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(NotFoundError)
             case _                                                                                =>
-              logWarn(
+              logError(
                 s"[SubscriptionConnector][displaySubscription] Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
               )
               Left(InternalServerError)
@@ -189,13 +189,13 @@ class SubscriptionConnector @Inject() (
     val error = Try(Json.parse(body).validate[ErrorDetail])
     error match {
       case Success(JsSuccess(errorDetailBody, _)) =>
-        logWarn(
+        logError(
           s"[SubscriptionConnector][logDownStreamError] Error with submission: ${errorDetailBody.errorDetail.sourceFaultDetail
               .map(_.detail.mkString)}"
         )
         Some(errorDetailBody)
       case _                                      =>
-        logWarn(
+        logError(
           s"[SubscriptionConnector][logDownStreamError] Error with submission: $status: response is not valid JSON"
         )
         None
