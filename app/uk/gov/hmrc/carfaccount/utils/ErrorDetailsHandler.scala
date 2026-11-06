@@ -40,7 +40,7 @@ object ErrorDetailsHandler {
         JsonValidationError
     }
 
-  def errorParseForViewRcasp422(response: HttpResponse, endpoint: URL): ApiError =
+  def errorParseForViewRcasp422(response: HttpResponse): ApiError =
     Try(response.json.as[ErrorDetail]) match {
       case Success(error)
           if error.errorDetail.sourceFaultDetail.flatMap(_.detail.headOption).forall(_.trim.startsWith("001")) =>

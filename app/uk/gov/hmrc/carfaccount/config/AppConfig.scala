@@ -67,3 +67,4 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val apiRetryAttempts: Int       = config.get[Int]("microservice.services.retry.attempts")
   val apiRetryDelayInSeconds: Int = config.get[Int]("microservice.services.retry.delayInSeconds")
+  val enrolmentKey: String        = config.get[String]("keys.enrolmentKey.carf")

@@ -74,7 +74,7 @@ class RcaspConnector @Inject() (
                   Left(JsonValidationError)
               }
             case UNPROCESSABLE_ENTITY                                                                       =>
-              Left(ErrorDetailsHandler.errorParseForViewRcasp422(httpResponse, url))
+              Left(ErrorDetailsHandler.errorParseForViewRcasp422(httpResponse))
             case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE | FORBIDDEN | METHOD_NOT_ALLOWED =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, url))
             case _                                                                                          =>
