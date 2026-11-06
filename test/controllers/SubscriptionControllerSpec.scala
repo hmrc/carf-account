@@ -38,7 +38,7 @@ class SubscriptionControllerSpec extends SpecBase {
   val exampleCarfId                                  = "XM000123456789"
   private val mockConnector: SubscriptionConnector   = mock[SubscriptionConnector]
   private val testController: SubscriptionController =
-    new SubscriptionController(cc, fakeAuthAction, fakeCheckCarfIdAction(exampleCarfId), mockConnector)
+    new SubscriptionController(cc, fakeAuthAction, fakeCheckCarfIdAction, mockConnector)
 
   private val testContact: Contact = Contact(
     email = "test@example.com",

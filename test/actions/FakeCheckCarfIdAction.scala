@@ -17,10 +17,9 @@
 package actions
 
 import play.api.mvc.{ActionFilter, Result}
-import uk.gov.hmrc.carfaccount.controllers.actions.{CheckCarfIdAction, CheckCarfIdActionImpl}
+import uk.gov.hmrc.carfaccount.controllers.actions.CheckCarfIdAction
 import uk.gov.hmrc.carfaccount.models.requests.AuthenticatedRequest
 
-import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class FakeCheckCarfIdActionImpl extends ActionFilter[AuthenticatedRequest] {

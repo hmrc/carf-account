@@ -64,7 +64,7 @@ trait SpecBase
   implicit val hc: HeaderCarrier    = HeaderCarrier()
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  def fakeCheckCarfIdAction(carfId: String) = new FakeCheckCarfIdAction()
+  def fakeCheckCarfIdAction = new FakeCheckCarfIdAction()
 
   val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1718118467838L), ZoneId.of(ukTimeZoneStringId))
 

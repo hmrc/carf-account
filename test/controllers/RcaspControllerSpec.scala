@@ -40,7 +40,7 @@ class RcaspControllerSpec extends SpecBase {
   val testController: RcaspController = new RcaspController(
     cc,
     fakeAuthAction,
-    fakeCheckCarfIdAction(exampleCarfId),
+    fakeCheckCarfIdAction,
     mockConnector
   )
 
