@@ -35,9 +35,10 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends SpecBase {
 
+  val exampleCarfId                                  = "XM000123456789"
   private val mockConnector: SubscriptionConnector   = mock[SubscriptionConnector]
   private val testController: SubscriptionController =
-    new SubscriptionController(cc, fakeAuthAction, mockConnector)
+    new SubscriptionController(cc, fakeAuthAction, fakeCheckCarfIdAction(exampleCarfId), mockConnector)
 
   private val testContact: Contact = Contact(
     email = "test@example.com",
@@ -49,7 +50,7 @@ class SubscriptionControllerSpec extends SpecBase {
 
   private val testSubscriptionRequest: SubscriptionRequest = SubscriptionRequest(
     gbUser = true,
-    idNumber = "XM000123456789",
+    idNumber = exampleCarfId,
     idType = "SAFE",
     primaryContact = testContact,
     secondaryContact = None,
@@ -158,7 +159,8 @@ class SubscriptionControllerSpec extends SpecBase {
             )
           )
 
-        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val result =
+          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
 
         status(result)          mustBe OK
         contentAsString(result) mustBe testSuccessResponseBody
@@ -181,7 +183,8 @@ class SubscriptionControllerSpec extends SpecBase {
         when(mockConnector.updateSubscription(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, Some(errorDetail))))
 
-        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val result =
+          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
 
         status(result) mustBe INTERNAL_SERVER_ERROR
 
@@ -195,7 +198,8 @@ class SubscriptionControllerSpec extends SpecBase {
         when(mockConnector.updateSubscription(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, None)))
 
-        val result = testController.updateSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val result =
+          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
 
         status(result)        mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) must include("Error sending updated subscription information")
@@ -204,7 +208,8 @@ class SubscriptionControllerSpec extends SpecBase {
       }
 
       "must return bad request when the request body is not valid JSON" in {
-        val result = testController.updateSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
+        val result =
+          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
         status(result)        mustBe BAD_REQUEST
         contentAsString(result) must include("Update Subscription Request's Json is invalid")

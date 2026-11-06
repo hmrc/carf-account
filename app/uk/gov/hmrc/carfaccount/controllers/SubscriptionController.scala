@@ -20,17 +20,18 @@ import com.google.inject.Inject
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.carfaccount.connectors.SubscriptionConnector
-import uk.gov.hmrc.carfaccount.controllers.actions.AuthAction
+import uk.gov.hmrc.carfaccount.controllers.actions.{AuthAction, CheckCarfIdAction}
 import uk.gov.hmrc.carfaccount.models.NotFoundError
 import uk.gov.hmrc.carfaccount.models.requests.SubscriptionRequest
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SubscriptionController @Inject() (
     cc: ControllerComponents,
     authorise: AuthAction,
+    checkCarfId: CheckCarfIdAction,
     subscriptionConnector: SubscriptionConnector
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) {
@@ -56,38 +57,40 @@ class SubscriptionController @Inject() (
       )
   }
 
-  def updateSubscription(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    request.body
-      .validate[SubscriptionRequest]
-      .fold(
-        invalid = _ =>
-          Future.successful(
-            BadRequest("Update Subscription Request's Json is invalid")
-          ),
-        valid = subscription =>
-          subscriptionConnector.updateSubscription(subscription).value.map {
-            case Right(httpResponse)                =>
-              Ok(httpResponse.body)
-            case Left((apiError, maybeErrorDetail)) =>
-              logWarn(
-                s"[SubscriptionController][createSubscription] Error sending updated subscription information: $apiError"
-              )
-              maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
-                errorDetail =>
-                  InternalServerError(Json.toJson(errorDetail))
-              }
-          }
-      )
-  }
-
-  def displaySubscription(carfId: String): Action[AnyContent] = authorise.async { implicit request =>
-    subscriptionConnector.displaySubscriptionInformation(carfId).value.map {
-      case Right(response)     => Ok(Json.toJson(response))
-      case Left(NotFoundError) =>
-        NotFound("Could not find a subscription record for this user")
-      case Left(_)             =>
-        InternalServerError("Unexpected error")
+  def updateSubscription(carfId: String): Action[JsValue] =
+    (authorise(parse.json) andThen checkCarfId(carfId)).async { implicit request =>
+      request.body
+        .validate[SubscriptionRequest]
+        .fold(
+          invalid = _ =>
+            Future.successful(
+              BadRequest("Update Subscription Request's Json is invalid")
+            ),
+          valid = subscription =>
+            subscriptionConnector.updateSubscription(subscription).value.map {
+              case Right(httpResponse)                =>
+                Ok(httpResponse.body)
+              case Left((apiError, maybeErrorDetail)) =>
+                logWarn(
+                  s"[SubscriptionController][createSubscription] Error sending updated subscription information: $apiError"
+                )
+                maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {
+                  errorDetail =>
+                    InternalServerError(Json.toJson(errorDetail))
+                }
+            }
+        )
     }
-  }
+
+  def displaySubscription(carfId: String): Action[AnyContent] =
+    (authorise andThen checkCarfId(carfId)).async { implicit request =>
+      subscriptionConnector.displaySubscriptionInformation(carfId).value.map {
+        case Right(response)     => Ok(Json.toJson(response))
+        case Left(NotFoundError) =>
+          NotFound("Could not find a subscription record for this user")
+        case Left(_)             =>
+          InternalServerError("Unexpected error")
+      }
+    }
 
 }

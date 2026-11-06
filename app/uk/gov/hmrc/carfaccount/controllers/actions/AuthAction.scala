@@ -19,8 +19,11 @@ package uk.gov.hmrc.carfaccount.controllers.actions
 import play.api.mvc.*
 import play.api.mvc.Results.Unauthorized
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.*
+import uk.gov.hmrc.carfaccount.models.IdentifierType
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, AuthorisedFunctions}
+import uk.gov.hmrc.carfaccount.config.AppConfig
 import uk.gov.hmrc.carfaccount.models.requests.AuthenticatedRequest
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId, UnauthorizedException}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -31,7 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultAuthAction @Inject() (
     override val authConnector: AuthConnector,
-    val parser: BodyParsers.Default
+    val parser: BodyParsers.Default,
+    config: AppConfig
 )(implicit val executionContext: ExecutionContext)
     extends AuthAction
     with AuthorisedFunctions:
@@ -39,24 +43,27 @@ class DefaultAuthAction @Inject() (
   override def invokeBlock[A](
       request: Request[A],
       block: AuthenticatedRequest[A] => Future[Result]
-  ): Future[Result] =
+  ): Future[Result] = {
     given hc: HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
     val sessionId: SessionId = hc.sessionId
       .getOrElse(throw new UnauthorizedException("Unable to retrieve session ID from headers"))
 
-    val retrievals = Retrievals.internalId and Retrievals.affinityGroup
+    val retrievals = Retrievals.internalId and Retrievals.affinityGroup and Retrievals.allEnrolments
 
     authorised()
-      .retrieve(retrievals) { case maybeInternalId ~ maybeAffinity =>
+      .retrieve(retrievals) { case maybeInternalId ~ maybeAffinity ~ enrolments =>
         (maybeInternalId, maybeAffinity) match
           case (Some(internalId), Some(affinityGroup)) =>
+            val maybeCarfId = getCarfId(enrolments)
+
             block(
               AuthenticatedRequest(
                 request,
                 internalId,
                 sessionId,
-                affinityGroup
+                affinityGroup,
+                maybeCarfId
               )
             )
 
@@ -68,6 +75,15 @@ class DefaultAuthAction @Inject() (
         logWarn(error)
         Unauthorized(error)
       }
+  }
+  private def getCarfId(
+      enrolments: Enrolments
+  ): Option[String] =
+    for {
+      enrolment <- enrolments.getEnrolment(config.enrolmentKey)
+      id        <- enrolment.getIdentifier(IdentifierType.CARFID)
+      carfId    <- if (id.value.nonEmpty) Some(id.value) else None
+    } yield carfId
 
 trait AuthAction
     extends ActionBuilder[AuthenticatedRequest, AnyContent]

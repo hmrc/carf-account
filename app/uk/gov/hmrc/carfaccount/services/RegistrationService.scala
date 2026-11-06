@@ -17,14 +17,13 @@
 package uk.gov.hmrc.carfaccount.services
 
 import cats.data.EitherT
-import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
 import uk.gov.hmrc.carfaccount.config.Constants.carfRegimeName
-import uk.gov.hmrc.carfaccount.models.requests.{AddressDetailsApi, IndividualDetailsWithoutId, OrganisationDetailsWithoutId, RegWithIdAutoMatchOrgFrontendRequest, RegWithIdIndApiRequest, RegWithIdIndApiRequestDetails, RegWithIdIndFrontendRequest, RegWithIdOrgApiRequest, RegWithIdOrgApiRequestDetails, RegWithIdUserEntryOrgFrontendRequest, RegWithUtrIndFrontendRequest, RegWithoutIdApiRequest, RegWithoutIdApiRequestDetails, RegWithoutIdIndFrontendRequest, RegWithoutIdOrgFrontendRequest, RequestCommon, RequestDetailIndividual, RequestDetailIndividualWithoutId, RequestDetailOrgCtAutoMatch, RequestDetailOrgUserEntry, RequestDetailOrganisationWithoutId}
-import uk.gov.hmrc.carfaccount.models.{ApiError, UuidGen}
-import uk.gov.hmrc.carfaccount.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
+import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
 import uk.gov.hmrc.carfaccount.models.requests.*
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.carfaccount.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
+import uk.gov.hmrc.carfaccount.models.{ApiError, UuidGen}
 import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
+import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Clock
 import javax.inject.Inject
