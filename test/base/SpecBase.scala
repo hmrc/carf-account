@@ -16,7 +16,7 @@
 
 package base
 
-import actions.FakeAuthAction
+import actions.{FakeAuthAction, FakeCheckCarfIdAction}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -63,6 +63,8 @@ trait SpecBase
 
   implicit val hc: HeaderCarrier    = HeaderCarrier()
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+  def fakeCheckCarfIdAction = new FakeCheckCarfIdAction()
 
   val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1718118467838L), ZoneId.of(ukTimeZoneStringId))
 

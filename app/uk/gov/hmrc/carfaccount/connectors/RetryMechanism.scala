@@ -21,7 +21,6 @@ import org.apache.pekko.pattern.retry
 import uk.gov.hmrc.carfaccount.config.AppConfig
 import uk.gov.hmrc.carfaccount.models.InternalServerError
 import uk.gov.hmrc.carfaccount.types.ResultT
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.carfaccount.utils.LoggerUtil.logError
 
 import scala.concurrent.duration.*
@@ -38,7 +37,7 @@ trait RetryMechanism {
     * in config, we retry twice so the total attempts is equal to 3
     */
 
-  protected def retryCall[T](call: => ResultT[T])(implicit hc: HeaderCarrier): ResultT[T] =
+  protected def retryCall[T](call: => ResultT[T]): ResultT[T] =
     ResultT.fromFuture(
       retry(
         () => call.value,

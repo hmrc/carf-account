@@ -20,49 +20,54 @@ import com.google.inject.Inject
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.carfaccount.connectors.RcaspConnector
-import uk.gov.hmrc.carfaccount.controllers.actions.AuthAction
+import uk.gov.hmrc.carfaccount.controllers.actions.{AuthAction, CheckCarfIdAction}
 import uk.gov.hmrc.carfaccount.models.NotFoundError
-import uk.gov.hmrc.carfaccount.models.responses.SubmitRcaspResponse
 import uk.gov.hmrc.carfaccount.models.requests.createRcasp.RcaspRequest as CreateRcaspRequest
 import uk.gov.hmrc.carfaccount.models.requests.deleteRcasp.RcaspRequest as DeleteRcaspRequest
 import uk.gov.hmrc.carfaccount.models.requests.updateRcasp.RcaspRequest as UpdateRcaspRequest
+import uk.gov.hmrc.carfaccount.models.responses.SubmitRcaspResponse
 import uk.gov.hmrc.carfaccount.types.ResultT
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class RcaspController @Inject() (
     cc: ControllerComponents,
     authorise: AuthAction,
+    checkCarfId: CheckCarfIdAction,
     rcaspConnector: RcaspConnector
 )(implicit ec: ExecutionContext)
     extends BackendController(cc) {
 
-  def viewRcasp(carfId: String, rcaspId: String): Action[AnyContent] = authorise.async { implicit request =>
-    rcaspConnector.viewRcasps(carfId, rcaspId).value.map {
-      case Right(response)     => Ok(Json.toJson(response))
-      case Left(NotFoundError) => NotFound("No RCASPs found")
-      case Left(_)             => InternalServerError("Unexpected error")
+  def viewRcasp(carfId: String, rcaspId: String): Action[AnyContent] =
+    (authorise andThen checkCarfId(carfId)).async { implicit request =>
+      rcaspConnector.viewRcasps(carfId, rcaspId).value.map {
+        case Right(response)     => Ok(Json.toJson(response))
+        case Left(NotFoundError) => NotFound("No RCASPs found")
+        case Left(_)             => InternalServerError("Unexpected error")
+      }
     }
+
+  def createRcasp(carfId: String): Action[JsValue] = (authorise(parse.json) andThen checkCarfId(carfId)).async {
+    implicit request =>
+      processRcaspRequest("Create", request.body.validate[CreateRcaspRequest]) { request =>
+        rcaspConnector.createRcasp(request)
+      }
   }
 
-  def createRcasp: Action[JsValue] = authorise(parse.json).async { implicit request =>
-    processRcaspRequest("Create", request.body.validate[CreateRcaspRequest]) { request =>
-      rcaspConnector.createRcasp(request)
-    }
+  def updateRcasp(carfId: String): Action[JsValue] = (authorise(parse.json) andThen checkCarfId(carfId)).async {
+    implicit request =>
+      processRcaspRequest("Update", request.body.validate[UpdateRcaspRequest]) { request =>
+        rcaspConnector.updateRcasp(request)
+      }
   }
 
-  def updateRcasp(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    processRcaspRequest("Update", request.body.validate[UpdateRcaspRequest]) { request =>
-      rcaspConnector.updateRcasp(request)
-    }
-  }
-
-  def deleteRcasp(): Action[JsValue] = authorise(parse.json).async { implicit request =>
-    processRcaspRequest("Delete", request.body.validate[DeleteRcaspRequest]) { request =>
-      rcaspConnector.deleteRcasp(request)
-    }
+  def deleteRcasp(carfId: String): Action[JsValue] = (authorise(parse.json) andThen checkCarfId(carfId)).async {
+    implicit request =>
+      processRcaspRequest("Delete", request.body.validate[DeleteRcaspRequest]) { request =>
+        rcaspConnector.deleteRcasp(request)
+      }
   }
 
   private def processRcaspRequest[A](

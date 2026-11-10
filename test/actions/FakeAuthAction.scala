@@ -38,7 +38,8 @@ class FakeAuthAction(
         request,
         internalId = "internalId-123",
         sessionId = SessionId("sessionId-123"),
-        affinityGroup = testAffinityGroup
+        affinityGroup = testAffinityGroup,
+        carfId = None
       )
     )
 
