@@ -72,7 +72,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   Right(data)
                 case Failure(exception) =>
                   logError(
-                    s"[RegistrationConnector][registerOrganisationWithID] Error parsing response as RegWithIdOrgApiResponse. Endpoint: <${endpoint.toURI}> Exception: <${exception.getMessage}>"
+                    s"[RegistrationConnector][registerOrganisationWithID] Error parsing response as RegWithIdOrgApiResponse from registration call. Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
               }
@@ -80,12 +80,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
               logError( // error as this would stop the progress of the user journey and needs rectifying
-                s"[RegistrationConnector][registerOrganisationWithID] No match could be found for this organisation: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+                s"[RegistrationConnector][registerOrganisationWithID] No match could be found for this organisation: status code: ${response.status}"
               )
               Left(NotFoundError)
             case _                                                                                =>
               logError(
-                s"[RegistrationConnector][registerOrganisationWithID] Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+                s"[RegistrationConnector][registerOrganisationWithID] Unexpected response from registration call: status code: ${response.status}"
               )
               Left(InternalServerError)
           }
@@ -111,7 +111,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   Right(data)
                 case Failure(exception) =>
                   logErrorThrow(
-                    s"[RegistrationConnector][registerIndividualWithId] Error parsing response as RegWithIdApiResponse. Endpoint: <${endpoint.toURI}>",
+                    s"[RegistrationConnector][registerIndividualWithId] Error parsing response as RegWithIdApiResponse from registration call. Exception: <${exception.getMessage}>",
                     exception
                   )
                   Left(JsonValidationError)
@@ -120,12 +120,12 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case NOT_FOUND                                                                        =>
               logError( // error as this would stop the progress of the user journey and needs rectifying
-                s"[RegistrationConnector][registerIndividualWithId] No match could be found for this user: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+                s"[RegistrationConnector][registerIndividualWithId] No match could be found for this user: status code: ${response.status}"
               )
               Left(NotFoundError)
             case _                                                                                =>
               logError(
-                s"[RegistrationConnector][registerIndividualWithId] Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+                s"[RegistrationConnector][registerIndividualWithId] Unexpected response from registration call: status code: ${response.status}"
               )
               Left(InternalServerError)
           }
@@ -138,7 +138,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
     EitherT {
       val endpoint: URL = url"${config.registerWithoutIdBaseUrl}"
       logInfo(
-        s"[RegistrationConnector][registerWithoutId] Calling registerWithoutId API with endpoint: ${endpoint.toURI}"
+        s"[RegistrationConnector][registerWithoutId] Calling registerWithoutId API"
       )
       http
         .post(endpoint)
@@ -154,7 +154,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
                   Right(response)
                 case Failure(exception) =>
                   logErrorThrow(
-                    s"[RegistrationConnector][registerWithoutId] Error parsing response as RegWithoutIdApiResponse. Endpoint: <${endpoint.toURI}>",
+                    s"[RegistrationConnector][registerWithoutId] Error parsing response as RegWithoutIdApiResponse from registration call.  Exception: <${exception.getMessage}>",
                     exception
                   )
                   Left(JsonValidationError)
@@ -163,7 +163,7 @@ class RegistrationConnector @Inject() (val config: AppConfig, val http: HttpClie
               Left(ErrorDetailsHandler.errorParse(response, endpoint))
             case _                                                                                =>
               logError(
-                s"[RegistrationConnector][registerWithoutId] Unexpected response: status code: ${response.status}, from endpoint: ${endpoint.toURI}"
+                s"[RegistrationConnector][registerWithoutId] Unexpected response from registration call: status code: ${response.status}"
               )
               Left(InternalServerError)
           }
