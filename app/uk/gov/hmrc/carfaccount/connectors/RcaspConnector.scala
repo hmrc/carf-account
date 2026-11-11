@@ -51,7 +51,7 @@ class RcaspConnector @Inject() (
       rcaspId: String
   )(implicit hc: HeaderCarrier): ResultT[ViewRcaspResponse] = {
     val url = url"$viewRcaspBackendBaseUrl/$carfId/$rcaspId"
-    logInfo(s"[RcaspConnector][viewRcasps] Calling endpoint: ${url.toString}")
+    logInfo(s"[RcaspConnector][viewRcasps] Calling endpoint for rcasp lookup")
 
     val requestBuilder = http
       .get(url)
@@ -69,7 +69,7 @@ class RcaspConnector @Inject() (
                   Right(data)
                 case Failure(exception) =>
                   logError(
-                    s"[RcaspConnector][viewRcasps] Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
+                    s"[RcaspConnector][viewRcasps] Error parsing response as ViewRcaspResponse from rcasp lookup. Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
               }
@@ -79,7 +79,7 @@ class RcaspConnector @Inject() (
               Left(ErrorDetailsHandler.errorParse(httpResponse, url))
             case _                                                                                          =>
               logError(
-                s"[RcaspConnector][viewRcasps]Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}"
+                s"[RcaspConnector][viewRcasps] Unexpected response from rcasp lookup: status code: ${httpResponse.status}"
               )
               Left(InternalServerError)
           }
@@ -123,7 +123,7 @@ class RcaspConnector @Inject() (
           Right(data)
         case Failure(exception) =>
           logError(
-            s"[RcaspConnector][processMutationRequest]Error parsing response. Endpoint: <${submitUrl.toURI}> Exception: <${exception.getMessage}>"
+            s"[RcaspConnector][processMutationRequest] Error parsing response from rcasp modification. Exception: <${exception.getMessage}>"
           )
           Left(JsonValidationError)
       }
@@ -133,7 +133,7 @@ class RcaspConnector @Inject() (
   private def sendRequest[T](url: URL, requestBuilder: RequestBuilder)(
       successfulResult: HttpResponse => Either[ApiError, T]
   ): ResultT[T] = {
-    logInfo(s"[RcaspConnector][sendRequest] Calling endpoint: ${url.toString}")
+    logInfo(s"[RcaspConnector][sendRequest] Calling endpoint to modify rcasp")
 
     ResultT.fromFuture(
       requestBuilder
@@ -146,7 +146,7 @@ class RcaspConnector @Inject() (
               Left(ErrorDetailsHandler.errorParse(httpResponse, url))
             case _  =>
               logError(
-                s"[RcaspConnector][sendRequest]Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}"
+                s"[RcaspConnector][sendRequest] Unexpected response from rcasp lookup: status code: ${httpResponse.status}"
               )
               Left(InternalServerError)
           }

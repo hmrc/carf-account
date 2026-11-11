@@ -62,7 +62,7 @@ class SubscriptionConnector @Inject() (
   private def createSubscription(request: SubscriptionRequest, endpoint: URL)(implicit
       hc: HeaderCarrier
   ): ResultT[HttpResponse] = {
-    logInfo(s"[SubscriptionConnector][createSubscription] Calling endpoint: ${endpoint.toString}")
+    logInfo(s"[SubscriptionConnector][createSubscription] Calling subscription creation endpoint")
 
     def failFuture(response: HttpResponse): Future[Either[ApiError, HttpResponse]] = {
       logWarn(
@@ -107,7 +107,7 @@ class SubscriptionConnector @Inject() (
                 failFuture(httpResponse)
               case status                                      =>
                 logError(
-                  s"[SubscriptionConnector][createSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
+                  s"[SubscriptionConnector][createSubscription] Unexpected response from subscription creation call: status code: $status"
                 )
                 logDownStreamError(status, httpResponse.body)
                 Future.successful(Left(InternalServerError))
@@ -123,7 +123,7 @@ class SubscriptionConnector @Inject() (
 
     val endpoint = url"$updateSubscriptionBackendBaseUrl"
 
-    logInfo(s"[SubscriptionConnector][updateSubscription]Calling endpoint: ${endpoint.toString}")
+    logInfo(s"[SubscriptionConnector][updateSubscription]Calling subscription update endpoint")
 
     EitherT {
       http
@@ -137,7 +137,7 @@ class SubscriptionConnector @Inject() (
               Right(httpResponse)
             case status =>
               logError(
-                s"[SubscriptionConnector][updateSubscription] Unexpected response: status code: $status, from endpoint: ${endpoint.toURI}"
+                s"[SubscriptionConnector][updateSubscription] Unexpected response from subscription update call: status code: $status"
               )
               Left((InternalServerError, logDownStreamError(status, httpResponse.body)))
           }
@@ -148,7 +148,7 @@ class SubscriptionConnector @Inject() (
   private def displaySubscription(endpoint: URL)(implicit
       hc: HeaderCarrier
   ): ResultT[SubscriptionDisplayResponse] = {
-    logInfo(s"[SubscriptionConnector][displaySubscription] Calling endpoint: ${endpoint.toString}")
+    logInfo(s"[SubscriptionConnector][displaySubscription] Calling subscription lookup endpoint")
     EitherT {
       http
         .get(endpoint)
@@ -163,7 +163,7 @@ class SubscriptionConnector @Inject() (
                   Right(data)
                 case Failure(exception) =>
                   logErrorThrow(
-                    s"[SubscriptionConnector][displaySubscription] Error parsing response as SubscriptionDisplayResponse. Endpoint: <${endpoint.toURI}>",
+                    s"[SubscriptionConnector][displaySubscription] Error parsing response as SubscriptionDisplayResponse from subscription lookup",
                     exception
                   )
                   Left(JsonValidationError)
@@ -172,12 +172,12 @@ class SubscriptionConnector @Inject() (
               Left(ErrorDetailsHandler.errorParse(httpResponse, endpoint))
             case NOT_FOUND                                                                        =>
               logError(
-                s"[SubscriptionConnector][displaySubscription] No match could be found for this user: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+                s"[SubscriptionConnector][displaySubscription] No match could be found for this user: status code: ${httpResponse.status}"
               )
               Left(NotFoundError)
             case _                                                                                =>
               logError(
-                s"[SubscriptionConnector][displaySubscription] Unexpected response: status code: ${httpResponse.status}, from endpoint: ${endpoint.toURI}"
+                s"[SubscriptionConnector][displaySubscription] Unexpected response from subscription lookup: status code: ${httpResponse.status}"
               )
               Left(InternalServerError)
           }
