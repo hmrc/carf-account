@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.carfaccount.controllers.actions
 
+import play.api.Logging
 import play.api.mvc.*
 import play.api.mvc.Results.Unauthorized
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -27,7 +28,6 @@ import uk.gov.hmrc.carfaccount.config.AppConfig
 import uk.gov.hmrc.carfaccount.models.requests.AuthenticatedRequest
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId, UnauthorizedException}
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +38,8 @@ class DefaultAuthAction @Inject() (
     config: AppConfig
 )(implicit val executionContext: ExecutionContext)
     extends AuthAction
-    with AuthorisedFunctions:
+    with AuthorisedFunctions
+    with Logging:
 
   override def invokeBlock[A](
       request: Request[A],
@@ -72,7 +73,7 @@ class DefaultAuthAction @Inject() (
       }
       .recover { case _: AuthorisationException =>
         val error = "Failed to authorise request"
-        logWarn(error)
+        logger.warn(error)
         Unauthorized(error)
       }
   }

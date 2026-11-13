@@ -17,6 +17,7 @@
 package uk.gov.hmrc.carfaccount.connectors
 
 import com.google.inject.Inject
+import play.api.Logging
 import play.api.http.Status.*
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -29,7 +30,6 @@ import uk.gov.hmrc.carfaccount.models.responses.{SubmitRcaspResponse, ViewRcaspR
 import uk.gov.hmrc.carfaccount.models.{JsonValidationError, *}
 import uk.gov.hmrc.carfaccount.types.ResultT
 import uk.gov.hmrc.carfaccount.utils.ErrorDetailsHandler
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -41,7 +41,8 @@ import scala.util.{Failure, Success, Try}
 class RcaspConnector @Inject() (
     config: AppConfig,
     http: HttpClientV2
-)(implicit ec: ExecutionContext) {
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
   private val viewRcaspBackendBaseUrl = config.viewRcaspBaseUrl
   private lazy val submitUrl          = url"${config.submitRcaspBaseUrl}"
@@ -51,7 +52,7 @@ class RcaspConnector @Inject() (
       rcaspId: String
   )(implicit hc: HeaderCarrier): ResultT[ViewRcaspResponse] = {
     val url = url"$viewRcaspBackendBaseUrl/$carfId/$rcaspId"
-    logInfo(s"[RcaspConnector][viewRcasps] Calling endpoint: ${url.toString}")
+    logger.info(s"[RcaspConnector][viewRcasps] Calling endpoint: ${url.toString}")
 
     val requestBuilder = http
       .get(url)
@@ -65,10 +66,10 @@ class RcaspConnector @Inject() (
             case OK                                                                                         =>
               Try(httpResponse.json.as[ViewRcaspResponse]) match {
                 case Success(data)      =>
-                  logInfo("[RcaspConnector][viewRcasps] View RCASP success!")
+                  logger.info("[RcaspConnector][viewRcasps] View RCASP success!")
                   Right(data)
                 case Failure(exception) =>
-                  logError(
+                  logger.error(
                     s"[RcaspConnector][viewRcasps] Error parsing response as ViewRcaspResponse. Endpoint: <${url.toURI}> Exception: <${exception.getMessage}>"
                   )
                   Left(JsonValidationError)
@@ -78,7 +79,7 @@ class RcaspConnector @Inject() (
             case BAD_REQUEST | INTERNAL_SERVER_ERROR | SERVICE_UNAVAILABLE | FORBIDDEN | METHOD_NOT_ALLOWED =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, url))
             case _                                                                                          =>
-              logError(
+              logger.error(
                 s"[RcaspConnector][viewRcasps]Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}"
               )
               Left(InternalServerError)
@@ -118,11 +119,11 @@ class RcaspConnector @Inject() (
     sendRequest(submitUrl, requestBuilderWithHeaders) { httpResponse =>
       Try(httpResponse.json.as[SubmitRcaspResponse]) match {
         case Success(data)      =>
-          logDebug(s"[RcaspConnector][processMutationRequest] RCASP submit call successful ! Response: ${Json
+          logger.debug(s"[RcaspConnector][processMutationRequest] RCASP submit call successful ! Response: ${Json
               .prettyPrint(Json.toJson(data))}")
           Right(data)
         case Failure(exception) =>
-          logError(
+          logger.error(
             s"[RcaspConnector][processMutationRequest]Error parsing response. Endpoint: <${submitUrl.toURI}> Exception: <${exception.getMessage}>"
           )
           Left(JsonValidationError)
@@ -133,7 +134,7 @@ class RcaspConnector @Inject() (
   private def sendRequest[T](url: URL, requestBuilder: RequestBuilder)(
       successfulResult: HttpResponse => Either[ApiError, T]
   ): ResultT[T] = {
-    logInfo(s"[RcaspConnector][sendRequest] Calling endpoint: ${url.toString}")
+    logger.info(s"[RcaspConnector][sendRequest] Calling endpoint: ${url.toString}")
 
     ResultT.fromFuture(
       requestBuilder
@@ -145,7 +146,7 @@ class RcaspConnector @Inject() (
                 FORBIDDEN | METHOD_NOT_ALLOWED =>
               Left(ErrorDetailsHandler.errorParse(httpResponse, url))
             case _  =>
-              logError(
+              logger.error(
                 s"[RcaspConnector][sendRequest]Unexpected response: status code: ${httpResponse.status}, from endpoint: ${url.toURI}"
               )
               Left(InternalServerError)
