@@ -18,15 +18,15 @@ package uk.gov.hmrc.carfaccount.connectors
 
 import org.apache.pekko.actor.{ActorSystem, Scheduler}
 import org.apache.pekko.pattern.retry
+import play.api.Logging
 import uk.gov.hmrc.carfaccount.config.AppConfig
 import uk.gov.hmrc.carfaccount.models.InternalServerError
 import uk.gov.hmrc.carfaccount.types.ResultT
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.logError
 
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 
-trait RetryMechanism {
+trait RetryMechanism extends Logging {
   val config: AppConfig
   val system: ActorSystem
 
@@ -44,7 +44,7 @@ trait RetryMechanism {
         config.apiRetryAttempts,
         config.apiRetryDelayInSeconds.seconds
       ).recoverWith { e =>
-        logError(s"Retry Failed returning final outcome with message: \n${e.getMessage}")
+        logger.error(s"Retry Failed returning final outcome with message: \n${e.getMessage}")
         Future.successful(Left(InternalServerError))
       }
     )

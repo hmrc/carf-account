@@ -17,12 +17,12 @@
 package uk.gov.hmrc.carfaccount.services
 
 import cats.data.EitherT
+import play.api.Logging
 import uk.gov.hmrc.carfaccount.config.Constants.carfRegimeName
 import uk.gov.hmrc.carfaccount.connectors.RegistrationConnector
 import uk.gov.hmrc.carfaccount.models.requests.*
 import uk.gov.hmrc.carfaccount.models.responses.{RegWithIdIndFrontendResponse, RegWithIdOrgFrontendResponse, RegWithoutIdFrontendResponse}
 import uk.gov.hmrc.carfaccount.models.{ApiError, UuidGen}
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Clock
@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class RegistrationService @Inject() (connector: RegistrationConnector, clock: Clock, uuidGen: UuidGen)(implicit
     ec: ExecutionContext
-) {
+) extends Logging {
 
   def registerIndWithNino(
       frontendRequest: RegWithIdIndFrontendRequest
@@ -123,7 +123,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
         )
       )
     )
-    logInfo(s"[RegistrationService][registerIndWithoutId] Registering an individual without id")
+    logger.info(s"[RegistrationService][registerIndWithoutId] Registering an individual without id")
     connector
       .registerWithoutId(apiRequest)
       .map(apiResponse => RegWithoutIdFrontendResponse(apiResponse.registerWithoutIDResponse.responseDetail.SAFEID))
@@ -145,7 +145,7 @@ class RegistrationService @Inject() (connector: RegistrationConnector, clock: Cl
         )
       )
     )
-    logInfo(s"[RegistrationService] Registering an organisation without id")
+    logger.info(s"[RegistrationService] Registering an organisation without id")
     connector
       .registerWithoutId(apiRequest)
       .map(apiResponse => RegWithoutIdFrontendResponse(apiResponse.registerWithoutIDResponse.responseDetail.SAFEID))
