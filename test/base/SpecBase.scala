@@ -22,15 +22,17 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.{BeforeAndAfterEach, OptionValues, TestSuite, TryValues}
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsValue
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents, PlayBodyParsers}
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.{DefaultAwaitTimeout, FakeHeaders, FakeRequest}
-import uk.gov.hmrc.carfaccount.models.responses.AddressResponse
 import uk.gov.hmrc.carfaccount.config.Constants.ukTimeZoneStringId
+import uk.gov.hmrc.carfaccount.controllers.actions.{AuthAction, CheckCarfIdAction}
+import uk.gov.hmrc.carfaccount.models.responses.AddressResponse
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.{Clock, Instant, ZoneId}
@@ -38,6 +40,7 @@ import scala.concurrent.ExecutionContext
 
 trait SpecBase
     extends AnyFreeSpec
+    with GuiceOneAppPerSuite
     with Matchers
     with TryValues
     with DefaultAwaitTimeout
@@ -46,25 +49,26 @@ trait SpecBase
     with IntegrationPatience
     with BeforeAndAfterEach
     with TestSuite
-    with FakeApplicationFactory
-    with BaseOneAppPerSuite
     with MockitoSugar {
 
-  override def fakeApplication(): Application =
-    GuiceApplicationBuilder()
-      .build()
+  def fakeCheckCarfIdAction        = new FakeCheckCarfIdAction()
+  val fakeAuthAction               = new FakeAuthAction(bodyParsers)
+  val bodyParsers: PlayBodyParsers = app.injector.instanceOf[PlayBodyParsers]
+
+  protected def applicationBuilder(): GuiceApplicationBuilder =
+    new GuiceApplicationBuilder()
+      .overrides(
+        bind[AuthAction].toInstance(new FakeAuthAction(bodyParsers)),
+        bind[CheckCarfIdAction].toInstance(new FakeCheckCarfIdAction())
+      )
 
   val cc: ControllerComponents                         = stubControllerComponents()
   val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
-  val bodyParsers: PlayBodyParsers                     = app.injector.instanceOf[PlayBodyParsers]
-  val fakeAuthAction                                   = new FakeAuthAction(bodyParsers)
 
   def fakeRequestWithJsonBody(json: JsValue): FakeRequest[JsValue] = FakeRequest("", "/", FakeHeaders(), json)
 
   implicit val hc: HeaderCarrier    = HeaderCarrier()
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-
-  def fakeCheckCarfIdAction = new FakeCheckCarfIdAction()
 
   val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1718118467838L), ZoneId.of(ukTimeZoneStringId))
 

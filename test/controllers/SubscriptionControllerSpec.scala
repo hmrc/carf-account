@@ -20,14 +20,15 @@ import base.SpecBase
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.{reset, times, verify, when}
-import play.api.http.Status.*
+import play.api.inject.bind
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers.{contentAsJson, contentAsString, status}
+import play.api.test.FakeRequest
+import play.api.test.Helpers.*
 import uk.gov.hmrc.carfaccount.connectors.SubscriptionConnector
-import uk.gov.hmrc.carfaccount.controllers.SubscriptionController
-import uk.gov.hmrc.carfaccount.models.{ApiError, ErrorDetail, ErrorDetails, Individual, InternalServerError, JsonValidationError, NotFoundError}
+import uk.gov.hmrc.carfaccount.controllers.{routes, SubscriptionController}
 import uk.gov.hmrc.carfaccount.models.requests.{Contact, SubscriptionRequest}
 import uk.gov.hmrc.carfaccount.models.responses.{CarfSubscriptionDetails, SubscriptionDisplayResponse, SubscriptionDisplaySuccess}
+import uk.gov.hmrc.carfaccount.models.*
 import uk.gov.hmrc.carfaccount.types.ResultT
 import uk.gov.hmrc.http.HttpResponse
 
@@ -84,24 +85,46 @@ class SubscriptionControllerSpec extends SpecBase {
             )
           )
 
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe testSuccessResponseBody
+        running(application) {
+          val request = FakeRequest(POST, routes.SubscriptionController.createSubscription().url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+          val result = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe testSuccessResponseBody
+
+          verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+        }
       }
 
       "must return internal server error when the connector returns SERVICE_UNAVAILABLE (connector converts to Left)" in {
         when(mockConnector.sendSubscriptionInformation(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse](InternalServerError))
 
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe INTERNAL_SERVER_ERROR
-        contentAsString(result) must include("Error sending subscription information")
+        running(application) {
+          val request = FakeRequest(POST, routes.SubscriptionController.createSubscription().url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe INTERNAL_SERVER_ERROR
+          contentAsString(result) must include("Error sending subscription information")
+
+          verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+        }
       }
 
       "must return unprocessable entity with already_registered status when error code returned is 007" in {
@@ -115,12 +138,24 @@ class SubscriptionControllerSpec extends SpecBase {
             )
           )
 
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe UNPROCESSABLE_ENTITY
-        contentAsString(result) must include("already_registered")
+        running(application) {
+          val request = FakeRequest(POST, routes.SubscriptionController.createSubscription().url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe UNPROCESSABLE_ENTITY
+          contentAsString(result) must include("already_registered")
+
+          verify(mockConnector, times(1)).sendSubscriptionInformation(eqTo(testSubscriptionRequest))(any())
+
+        }
       }
 
       "must return unprocessable entity 422 with 'Invalid ID type' message when error code returned is 015" in {
@@ -134,19 +169,44 @@ class SubscriptionControllerSpec extends SpecBase {
             )
           )
 
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe UNPROCESSABLE_ENTITY
-        contentAsString(result) must include("Invalid ID type")
+        running(application) {
+          val request = FakeRequest(POST, routes.SubscriptionController.createSubscription().url)
+            .withJsonBody(testSubscriptionRequestJson)
+
+          val result = route(application, request).value
+
+          status(result)        mustBe UNPROCESSABLE_ENTITY
+          contentAsString(result) must include("Invalid ID type")
+
+        }
       }
 
       "must return bad request when the request body is not valid JSON" in {
-        val result = testController.createSubscription()(fakeRequestWithJsonBody(Json.toJson("invalid request")))
 
-        status(result)        mustBe BAD_REQUEST
-        contentAsString(result) must include("SubscriptionRequest is invalid")
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        verify(mockConnector, times(0)).sendSubscriptionInformation(any())(any())
+        running(application) {
+          val request = FakeRequest(POST, routes.SubscriptionController.createSubscription().url)
+            .withJsonBody(Json.toJson("invalid request"))
+
+          val result = route(application, request).value
+
+          status(result)        mustBe BAD_REQUEST
+          contentAsString(result) must include("SubscriptionRequest is invalid")
+
+          verify(mockConnector, times(0)).sendSubscriptionInformation(any())(any())
+
+        }
       }
     }
 
@@ -159,13 +219,24 @@ class SubscriptionControllerSpec extends SpecBase {
             )
           )
 
-        val result =
-          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe testSuccessResponseBody
+        running(application) {
+          val request = FakeRequest(PUT, routes.SubscriptionController.updateSubscription(exampleCarfId).url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+          val result = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe testSuccessResponseBody
+
+          verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+
+        }
       }
 
       "must return internal server error when the connector returns InternalServerError with ErrorDetail" in {
@@ -183,38 +254,71 @@ class SubscriptionControllerSpec extends SpecBase {
         when(mockConnector.updateSubscription(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, Some(errorDetail))))
 
-        val result =
-          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(PUT, routes.SubscriptionController.updateSubscription(exampleCarfId).url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        contentAsString(result) must include("Service Unavailable")
-        contentAsString(result) must include("correlationId")
+          val result = route(application, request).value
 
-        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+          status(result) mustBe INTERNAL_SERVER_ERROR
+
+          contentAsString(result) must include("Service Unavailable")
+          contentAsString(result) must include("correlationId")
+
+          verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+
+        }
       }
 
       "must return internal server error when the connector returns InternalServerError without ErrorDetail" in {
         when(mockConnector.updateSubscription(any())(any()))
           .thenReturn(EitherT.leftT[Future, HttpResponse]((InternalServerError, None)))
 
-        val result =
-          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(testSubscriptionRequestJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe INTERNAL_SERVER_ERROR
-        contentAsString(result) must include("Error sending updated subscription information")
+        running(application) {
+          val request = FakeRequest(PUT, routes.SubscriptionController.updateSubscription(exampleCarfId).url)
+            .withJsonBody(testSubscriptionRequestJson)
 
-        verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe INTERNAL_SERVER_ERROR
+          contentAsString(result) must include("Error sending updated subscription information")
+
+          verify(mockConnector, times(1)).updateSubscription(eqTo(testSubscriptionRequest))(any())
+
+        }
       }
 
       "must return bad request when the request body is not valid JSON" in {
-        val result =
-          testController.updateSubscription(exampleCarfId)(fakeRequestWithJsonBody(Json.toJson("invalid request")))
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe BAD_REQUEST
-        contentAsString(result) must include("Update Subscription Request's Json is invalid")
+        running(application) {
+          val request = FakeRequest(PUT, routes.SubscriptionController.updateSubscription(exampleCarfId).url)
+            .withJsonBody(Json.toJson("invalid request"))
 
-        verify(mockConnector, times(0)).updateSubscription(any())(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe BAD_REQUEST
+          contentAsString(result) must include("Update Subscription Request's Json is invalid")
+
+          verify(mockConnector, times(0)).updateSubscription(any())(any())
+
+        }
       }
     }
 
@@ -236,48 +340,89 @@ class SubscriptionControllerSpec extends SpecBase {
         when(mockConnector.displaySubscriptionInformation(any())(any()))
           .thenReturn(ResultT.fromValue(testSubscriptionDisplayResponse))
 
-        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe OK
-        contentAsJson(result) mustBe Json.toJson(testSubscriptionDisplayResponse)
+        running(application) {
+          val request = FakeRequest(GET, routes.SubscriptionController.displaySubscription(testCarfId).url)
 
-        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe OK
+          contentAsJson(result) mustBe Json.toJson(testSubscriptionDisplayResponse)
+
+          verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+
+        }
       }
 
       "must return NotFound when the connector returns NotFoundError" in {
         when(mockConnector.displaySubscriptionInformation(any())(any()))
           .thenReturn(ResultT.fromError(NotFoundError))
 
-        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe NOT_FOUND
-        contentAsString(result) must include("Could not find a subscription record for this user")
+        running(application) {
+          val request = FakeRequest(GET, routes.SubscriptionController.displaySubscription(testCarfId).url)
 
-        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe NOT_FOUND
+          contentAsString(result) must include("Could not find a subscription record for this user")
+
+          verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+        }
       }
 
       "must return InternalServerError when the connector returns InternalServerError" in {
         when(mockConnector.displaySubscriptionInformation(any())(any()))
           .thenReturn(ResultT.fromError(InternalServerError))
 
-        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe INTERNAL_SERVER_ERROR
-        contentAsString(result) must include("Unexpected error")
+        running(application) {
+          val request = FakeRequest(GET, routes.SubscriptionController.displaySubscription(testCarfId).url)
 
-        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe INTERNAL_SERVER_ERROR
+          contentAsString(result) must include("Unexpected error")
+
+          verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+        }
       }
 
       "must return InternalServerError when the connector returns JsonValidationError" in {
         when(mockConnector.displaySubscriptionInformation(any())(any()))
           .thenReturn(ResultT.fromError(JsonValidationError))
 
-        val result = testController.displaySubscription(testCarfId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[SubscriptionConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe INTERNAL_SERVER_ERROR
-        contentAsString(result) must include("Unexpected error")
+        running(application) {
+          val request = FakeRequest(GET, routes.SubscriptionController.displaySubscription(testCarfId).url)
 
-        verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+          val result = route(application, request).value
+
+          status(result)        mustBe INTERNAL_SERVER_ERROR
+          contentAsString(result) must include("Unexpected error")
+
+          verify(mockConnector, times(1)).displaySubscriptionInformation(eqTo(testCarfId))(any())
+        }
       }
     }
   }
