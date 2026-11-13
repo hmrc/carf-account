@@ -17,13 +17,13 @@
 package uk.gov.hmrc.carfaccount.controllers
 
 import com.google.inject.Inject
+import play.api.Logging
 import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.carfaccount.connectors.SubscriptionConnector
 import uk.gov.hmrc.carfaccount.controllers.actions.{AuthAction, CheckCarfIdAction}
 import uk.gov.hmrc.carfaccount.models.NotFoundError
 import uk.gov.hmrc.carfaccount.models.requests.SubscriptionRequest
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +34,8 @@ class SubscriptionController @Inject() (
     checkCarfId: CheckCarfIdAction,
     subscriptionConnector: SubscriptionConnector
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc)
+    with Logging {
 
   def createSubscription: Action[JsValue] = authorise(parse.json).async { implicit request =>
     request.body
@@ -49,7 +50,7 @@ class SubscriptionController @Inject() (
             case Right(httpResponse) =>
               Status(httpResponse.status)(httpResponse.body)
             case Left(apiError)      =>
-              logWarn(
+              logger.warn(
                 s"[SubscriptionController][createSubscription] Error sending subscription information: $apiError"
               )
               InternalServerError("Error sending subscription information")
@@ -71,7 +72,7 @@ class SubscriptionController @Inject() (
               case Right(httpResponse)                =>
                 Ok(httpResponse.body)
               case Left((apiError, maybeErrorDetail)) =>
-                logWarn(
+                logger.warn(
                   s"[SubscriptionController][createSubscription] Error sending updated subscription information: $apiError"
                 )
                 maybeErrorDetail.fold(InternalServerError("Error sending updated subscription information")) {

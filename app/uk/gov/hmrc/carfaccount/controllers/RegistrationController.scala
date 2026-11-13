@@ -17,13 +17,13 @@
 package uk.gov.hmrc.carfaccount.controllers
 
 import com.google.inject.Inject
+import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.carfaccount.controllers.actions.AuthAction
 import uk.gov.hmrc.carfaccount.models.requests.*
 import uk.gov.hmrc.carfaccount.models.{ApiError, NotFoundError}
 import uk.gov.hmrc.carfaccount.services.RegistrationService
-import uk.gov.hmrc.carfaccount.utils.LoggerUtil.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +33,8 @@ class RegistrationController @Inject() (
     authorise: AuthAction,
     service: RegistrationService
 )(implicit ec: ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc)
+    with Logging {
 
   def registerIndividualWithNino(): Action[JsValue] = authorise(parse.json).async { implicit request =>
     withJsonBody[RegWithNinoIndFrontendRequest] { request =>
@@ -86,7 +87,7 @@ class RegistrationController @Inject() (
       service.registerIndWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>
-          logWarn(
+          logger.warn(
             s"[RegistrationController][registerIndividualWithoutId] Error registering individual without id. Error: $error"
           )
           InternalServerError("Unexpected error")
@@ -99,7 +100,7 @@ class RegistrationController @Inject() (
       service.registerOrgWithoutId(req).value.map {
         case Right(resp)           => Ok(Json.toJson(resp))
         case Left(error: ApiError) =>
-          logWarn(
+          logger.warn(
             s"[RegistrationController][registerOrganisationWithoutId] Error registering organisation without id. Error: $error"
           )
           InternalServerError("Unexpected error")
