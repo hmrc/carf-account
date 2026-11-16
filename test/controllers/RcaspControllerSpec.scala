@@ -20,15 +20,16 @@ import base.SpecBase
 import cats.data.EitherT
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import play.api.http.Status.*
+import play.api.inject.bind
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Results.{BadRequest, InternalServerError}
-import play.api.test.Helpers.{contentAsString, status}
+import play.api.mvc.Results.InternalServerError
+import play.api.test.FakeRequest
+import play.api.test.Helpers.*
 import uk.gov.hmrc.carfaccount.connectors.RcaspConnector
-import uk.gov.hmrc.carfaccount.controllers.management.RcaspController
+import uk.gov.hmrc.carfaccount.controllers.management.{routes, RcaspController}
 import uk.gov.hmrc.carfaccount.models
-import uk.gov.hmrc.carfaccount.models.responses.{RcaspResponseCommon, RcaspResponseDetails, SubmitRcaspResponse, SubmitResponseDetails, SubmitReturnParameters, ViewRcasp, ViewRcaspResponse}
-import uk.gov.hmrc.carfaccount.models.{viewAndUpdateRcasp, ApiError, JsonValidationError, NotFoundError, RcaspAddress, RcaspContactDetails, TinDetails}
+import uk.gov.hmrc.carfaccount.models.*
+import uk.gov.hmrc.carfaccount.models.responses.*
 
 import scala.concurrent.Future
 
@@ -116,20 +117,38 @@ class RcaspControllerSpec extends SpecBase {
         when(mockConnector.viewRcasps(any(), any())(any()))
           .thenReturn(EitherT.rightT[Future, ApiError](testViewRcaspResponse))
 
-        val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe testViewRcaspResponseJson
+        running(application) {
+          val request = FakeRequest(GET, routes.RcaspController.viewRcasp(exampleCarfId, exampleRcaspId).url)
+          val result  = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe testViewRcaspResponseJson
+        }
       }
 
       "must return a NotFound when the connector returns NotFoundError" in {
         when(mockConnector.viewRcasps(any(), any())(any()))
           .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](NotFoundError))
 
-        val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)        mustBe NOT_FOUND
-        contentAsString(result) must include("No RCASPs found")
+        running(application) {
+          val request = FakeRequest(GET, routes.RcaspController.viewRcasp(exampleCarfId, exampleRcaspId).url)
+          val result  = route(application, request).value
+
+          status(result)        mustBe NOT_FOUND
+          contentAsString(result) must include("No RCASPs found")
+        }
       }
 
       "must return internal server error when connector returns" - {
@@ -137,20 +156,38 @@ class RcaspControllerSpec extends SpecBase {
           when(mockConnector.viewRcasps(any(), any())(any()))
             .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](InternalServerError))
 
-          val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
+          val application = applicationBuilder()
+            .overrides(
+              bind[RcaspConnector].toInstance(mockConnector)
+            )
+            .build()
 
-          status(result)        mustBe INTERNAL_SERVER_ERROR
-          contentAsString(result) must include("Unexpected error")
+          running(application) {
+            val request = FakeRequest(GET, routes.RcaspController.viewRcasp(exampleCarfId, exampleRcaspId).url)
+            val result  = route(application, request).value
+
+            status(result)        mustBe INTERNAL_SERVER_ERROR
+            contentAsString(result) must include("Unexpected error")
+          }
         }
 
         "JsonValidationError" in {
           when(mockConnector.viewRcasps(any(), any())(any()))
             .thenReturn(EitherT.leftT[Future, ViewRcaspResponse](JsonValidationError))
 
-          val result = testController.viewRcasp(exampleCarfId, exampleRcaspId)(fakeRequest)
+          val application = applicationBuilder()
+            .overrides(
+              bind[RcaspConnector].toInstance(mockConnector)
+            )
+            .build()
 
-          status(result)        mustBe INTERNAL_SERVER_ERROR
-          contentAsString(result) must include("Unexpected error")
+          running(application) {
+            val request = FakeRequest(GET, routes.RcaspController.viewRcasp(exampleCarfId, exampleRcaspId).url)
+            val result  = route(application, request).value
+
+            status(result)        mustBe INTERNAL_SERVER_ERROR
+            contentAsString(result) must include("Unexpected error")
+          }
         }
       }
     }
@@ -217,10 +254,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.rightT[Future, ApiError](testCreateResponseBody)
           )
 
-        val result = testController.createRcasp(exampleCarfId)(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe expectedCreateResponse
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.createRcasp(exampleCarfId).url)
+            .withJsonBody(buildCreateOrgRcaspJson)
+          val result  = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe expectedCreateResponse
+        }
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
@@ -229,9 +276,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
-        val result = testController.createRcasp(exampleCarfId)(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.createRcasp(exampleCarfId).url)
+            .withJsonBody(buildCreateOrgRcaspJson)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Internal Server Error when the connector returns Json validation error" in {
@@ -240,9 +298,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result = testController.createRcasp(exampleCarfId)(fakeRequestWithJsonBody(buildCreateOrgRcaspJson))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.createRcasp(exampleCarfId).url)
+            .withJsonBody(buildCreateOrgRcaspJson)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Bad Request when the request body is not valid JSON" in {
@@ -251,10 +320,21 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result =
-          testController.createRcasp(exampleCarfId)(fakeRequestWithJsonBody(Json.toJson("invalid request"))).futureValue
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        result mustBe BadRequest("CreateRcaspRequest is invalid")
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.createRcasp(exampleCarfId).url)
+            .withJsonBody(Json.toJson("invalid request"))
+
+          val result = route(application, request).value
+
+          status(result)          mustBe BAD_REQUEST
+          contentAsString(result) mustBe "CreateRcaspRequest is invalid"
+        }
       }
     }
 
@@ -320,10 +400,21 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.rightT[Future, ApiError](testUpdateDeleteResponseBody)
           )
 
-        val result = testController.updateRcasp(exampleCarfId)(fakeRequestWithJsonBody(updateRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe "{}"
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.updateRcasp(exampleCarfId).url)
+            .withJsonBody(updateRequest)
+
+          val result = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe "{}"
+        }
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
@@ -332,9 +423,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
-        val result = testController.updateRcasp(exampleCarfId)(fakeRequestWithJsonBody(updateRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.updateRcasp(exampleCarfId).url)
+            .withJsonBody(updateRequest)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Internal Server Error when the connector returns Json validation error" in {
@@ -343,9 +445,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result = testController.updateRcasp(exampleCarfId)(fakeRequestWithJsonBody(updateRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.updateRcasp(exampleCarfId).url)
+            .withJsonBody(updateRequest)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Bad Request when the request body is not valid JSON" in {
@@ -354,10 +467,21 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result =
-          testController.updateRcasp(exampleCarfId)(fakeRequestWithJsonBody(Json.toJson("invalid request"))).futureValue
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        result mustBe BadRequest("UpdateRcaspRequest is invalid")
+        running(application) {
+          val request = FakeRequest(POST, routes.RcaspController.updateRcasp(exampleCarfId).url)
+            .withJsonBody(Json.toJson("invalid request"))
+
+          val result = route(application, request).value
+
+          status(result)          mustBe BAD_REQUEST
+          contentAsString(result) mustBe "UpdateRcaspRequest is invalid"
+        }
       }
     }
 
@@ -393,10 +517,21 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.rightT[Future, ApiError](testUpdateDeleteResponseBody)
           )
 
-        val result = testController.deleteRcasp(exampleCarfId)(fakeRequestWithJsonBody(deleteRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result)          mustBe OK
-        contentAsString(result) mustBe "{}"
+        running(application) {
+          val request = FakeRequest(DELETE, routes.RcaspController.deleteRcasp(exampleCarfId).url)
+            .withJsonBody(deleteRequest)
+
+          val result = route(application, request).value
+
+          status(result)          mustBe OK
+          contentAsString(result) mustBe "{}"
+        }
       }
 
       "must return Internal Server Error when the connector returns Internal server error" in {
@@ -405,9 +540,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](models.InternalServerError)
           )
 
-        val result = testController.deleteRcasp(exampleCarfId)(fakeRequestWithJsonBody(deleteRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(DELETE, routes.RcaspController.deleteRcasp(exampleCarfId).url)
+            .withJsonBody(deleteRequest)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Internal Server Error when the connector returns Json validation error" in {
@@ -416,9 +562,20 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result = testController.deleteRcasp(exampleCarfId)(fakeRequestWithJsonBody(deleteRequest))
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
+        running(application) {
+          val request = FakeRequest(DELETE, routes.RcaspController.deleteRcasp(exampleCarfId).url)
+            .withJsonBody(deleteRequest)
+
+          val result = route(application, request).value
+
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
 
       "must return Bad Request when the request body is not valid JSON" in {
@@ -427,10 +584,21 @@ class RcaspControllerSpec extends SpecBase {
             EitherT.leftT[Future, ApiError](JsonValidationError)
           )
 
-        val result =
-          testController.deleteRcasp(exampleCarfId)(fakeRequestWithJsonBody(Json.toJson("invalid request"))).futureValue
+        val application = applicationBuilder()
+          .overrides(
+            bind[RcaspConnector].toInstance(mockConnector)
+          )
+          .build()
 
-        result mustBe BadRequest("DeleteRcaspRequest is invalid")
+        running(application) {
+          val request = FakeRequest(DELETE, routes.RcaspController.deleteRcasp(exampleCarfId).url)
+            .withJsonBody(Json.toJson("invalid request"))
+
+          val result = route(application, request).value
+
+          status(result)          mustBe BAD_REQUEST
+          contentAsString(result) mustBe "DeleteRcaspRequest is invalid"
+        }
       }
     }
   }
