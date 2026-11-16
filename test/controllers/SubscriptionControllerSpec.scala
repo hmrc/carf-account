@@ -36,10 +36,8 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends SpecBase {
 
-  val exampleCarfId                                  = "XM000123456789"
-  private val mockConnector: SubscriptionConnector   = mock[SubscriptionConnector]
-  private val testController: SubscriptionController =
-    new SubscriptionController(cc, fakeAuthAction, fakeCheckCarfIdAction, mockConnector)
+  val exampleCarfId                                = "XM000123456789"
+  private val mockConnector: SubscriptionConnector = mock[SubscriptionConnector]
 
   private val testContact: Contact = Contact(
     email = "test@example.com",
